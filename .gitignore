@@ -1,0 +1,10 @@
+.AppleDouble
+.DS_Store
+.idea
+.LSOverride
+.env
+
+env/*/current
+
+# keep directories with a .gitkeep file
+!/**/.gitkeep
