@@ -179,6 +179,39 @@ function _ask() {
     esac
 }
 
+function _share_directory {
+    local directory="${1}";
+    local path="${2}";
+    local real_path
+
+    if _ask "Share your local ${directory} directory?" "y"; then
+        real_path=$(realpath "${path}");
+
+        if [[ ${?} -ne 0 ]]; then
+            _print -w "Unable to determine path of ${directory} directory";
+
+            real_path=;
+
+            if _ask "Locate ${directory} directory yourself?" "y"; then
+                while [[ -z "${real_path}" ]]; do
+                    read -e -p "${directory} directory: " path </dev/tty;
+                    real_path="$(realpath "${path}")";
+
+                    if [[ ${?} -ne 0 ]]; then
+                        _print -w "Unable to resolve path of '%s'" "${path}";
+
+                        real_path=;
+
+                        continue;
+                    fi
+                done
+            fi
+        fi
+    fi
+
+    echo "${real_path}";
+}
+
 function _setup() {
     local payload=();
     local choices=();
@@ -284,6 +317,12 @@ function _setup() {
         done
 
         payload+=("DATA_DIR=${choice}");
+
+        choice=$(_share_directory "SSH" "${HOME}/.ssh");
+        [[ ! -z "${choice}" ]] && payload+=("SSH_DIR=${choice}");
+
+        choice=$(_share_directory "cache" "${HOME}/.cache");
+        [[ ! -z "${choice}" ]] && payload+=("CACHE_DIR=${choice}");
     fi
 
     _print -v -s "building environment file...";
