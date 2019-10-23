@@ -375,6 +375,9 @@ function _verify_env {
 }
 
 function _up {
+    local data_path;
+    local www_path;
+
     _verify_env;
 
     _print -i "Building docker image";
@@ -390,7 +393,17 @@ function _up {
 
     docker-compose up -d;
 
-    return ${?};
+    if [[ ${?} -eq 0 ]]; then
+        PIPE_SEVERITY="-c";
+
+        while read data_path www_path; do
+            [[ -z "${data_path}" ]] || [[ -z "${www_path}" ]] && continue;
+
+            _print -v "exec data2www '%s' '%s'" "${data_path}" "${www_path}";
+
+            docker-compose exec -T swarm-php data2www "${data_path}" "${www_path}" 2> >(_print_pipe) & disown;
+        done < "${OWN_DIRECTORY}/config/data2www.cfg"
+    fi
 }
 
 function _list {
