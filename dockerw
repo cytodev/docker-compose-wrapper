@@ -433,12 +433,16 @@ function _ssh {
 }
 
 function _down {
+    rm -vf "${OWN_DIRECTORY}/logs/"*;
+
     docker-compose down --volumes;
 
     return ${?};
 }
 
 function _destroy {
+    rm -vf "${OWN_DIRECTORY}/logs/"*;
+
     docker-compose down --rmi all --volumes --remove-orphans;
 
     return ${?};
