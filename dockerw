@@ -334,24 +334,6 @@ function _setup() {
     return 0;
 }
 
-function _verify_env {
-    [[ -f "${OWN_DIRECTORY}/.env" ]] && return 0;
-
-    _print -w "No .env present in '%s'" "${OWN_DIRECTORY}";
-
-    if _ask "Enter setup?" "y"; then
-        _setup;
-
-        [[ ! ${?} ]] && _print -c "Setup failed";
-    fi
-
-    if [[ ! -f "${OWN_DIRECTORY}/.env" ]]; then
-        _print -c "Unable to continue without a .env file";
-
-        exit 1;
-    fi
-}
-
 function _env {
     local environment;
     local current;
@@ -372,6 +354,24 @@ function _env {
     done
 
     return 0;
+}
+
+function _verify_env {
+    [[ -f "${OWN_DIRECTORY}/.env" ]] && return 0;
+
+    _print -w "No .env present in '%s'" "${OWN_DIRECTORY}";
+
+    if _ask "Enter setup?" "y"; then
+        _setup;
+
+        [[ ! ${?} ]] && _print -c "Setup failed";
+    fi
+
+    if [[ ! -f "${OWN_DIRECTORY}/.env" ]]; then
+        _print -c "Unable to continue without a .env file";
+
+        exit 1;
+    fi
 }
 
 function _up {
