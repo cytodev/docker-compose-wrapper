@@ -35,6 +35,7 @@
 SELF="${0##*/}";
 RESTORE=${PWD};
 OWN_DIRECTORY="$(dirname "$(realpath "${0}")")";
+PIPE_SEVERITY=;
 
 declare -a ARGV;
 declare -A OPTS;
@@ -125,7 +126,7 @@ function _print() {
     return 0;
 }
 
-function _pipe_failure {
+function _print_pipe {
     local messages=();
     local message;
     local stdin_line;
@@ -135,7 +136,7 @@ function _pipe_failure {
     done
 
     for message in "${messages[@]}"; do
-        _print -c "${message}";
+        _print ${PIPE_SEVERITY} "${message}";
     done
 }
 
@@ -235,7 +236,11 @@ function _setup() {
             if [[ -f "${environment}/current" ]]; then
                 _print -v "removing old symlink";
 
-                [[ ! $(rm -f "${environment}/current"  2> >(_pipe_failure)) ]] && return 1;
+                PIPE_SEVERITY="-c";
+
+                if ! rm -f "${environment}/current"  2> >(_print_pipe); then
+                    return 1;
+                fi
             fi
 
             _print -v "symlinking '%s' to '%s'" "${environment}/${choices[${choice}]}" "${environment}/current";
@@ -327,7 +332,9 @@ function _up {
 }
 
 function _list {
-    docker ps -a 2> >(_pipe_failure);
+    PIPE_SEVERITY="-w";
+
+    docker ps -a 2> >(_print_pipe);
 
     return ${?};
 }
@@ -336,9 +343,11 @@ function _enter {
     local host="${1}";
     local user="${2:-root}";
 
-    docker-compose exec --user "${user}" "${host}" bash -l 2> >(_pipe_failure);
+    PIPE_SEVERITY="-w";
 
-    return ${?};
+    docker-compose exec --user "${user}" "${host}" bash -l 2> >(_print_pipe);
+
+    return 0;
 }
 
 function _ssh {
