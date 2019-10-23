@@ -258,6 +258,13 @@ function _setup() {
         fi
     done
 
+    if [[ ! -z "${payload[@]}" ]]; then
+        payload+=("################################################################################");
+        payload+=("# Global config");
+        payload+=("USER_ID=$(id -u $USER)");
+        payload+=("GROUP_ID=$(id -g $USER)");
+    fi
+
     _print -v -s "building environment file...";
 
     printf "%s\n" "${payload[@]}" > "${OWN_DIRECTORY}/.env";
