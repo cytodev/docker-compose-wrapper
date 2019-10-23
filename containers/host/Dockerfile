@@ -1,6 +1,9 @@
 ARG UBUNTU_VERSION=${UBUNTU_VERSION}
 FROM ubuntu:${UBUNTU_VERSION}
 
+# ensure the mountpoint exists
+RUN mkdir -p /mnt/data
+
 # user creation
 ARG USER_ID=${USER_ID}
 ARG GROUP_ID=${GROUP_ID}
