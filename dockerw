@@ -374,9 +374,10 @@ function _enter {
 }
 
 function _ssh {
-    # TODO
+    ssh-copy-id -p 17322 development@0.0.0.0 2> /dev/null;
+    ssh -p 17322 development@0.0.0.0;
 
-    return 127;
+    return ${?};
 }
 
 function _down {
