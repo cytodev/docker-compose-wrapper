@@ -306,9 +306,13 @@ function _env {
 }
 
 function _up {
-    [[ ! $(docker-compose build 2> >(_pipe_failure)) ]] && return 1;
+    if ! docker-compose build; then
+        _print -c "Build failed";
 
-    docker-compose up -d 2> >(_pipe_failure);
+        return 1;
+    fi
+
+    docker-compose up -d;
 
     return ${?};
 }
@@ -335,7 +339,7 @@ function _ssh {
 }
 
 function _down {
-    docker-compose down -rmi all -volumes --remove-orphans 2> >(_pipe_failure);
+    docker-compose down --rmi all --volumes --remove-orphans;
 
     return ${?};
 }
