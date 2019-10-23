@@ -336,6 +336,8 @@ function _env {
 }
 
 function _up {
+    _verify_env;
+
     _print -i "Building docker image";
     _print -i "This process might take a while, especially when this is the first build";
 
@@ -398,8 +400,6 @@ function main() {
     _print -v "SELF=%s" "${SELF}";
     _print -v "RESTORE=%s" "${RESTORE}";
     _print -v "OWN_DIRECTORY=%s" "${OWN_DIRECTORY}";
-
-    _verify_env;
 
     case "${ARGV[1]}" in
         "setup")
