@@ -11,6 +11,7 @@
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] enter <{e:1;34m}container{e:m}> [<{e:1;34m}user>{e:m}]
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] ssh
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] down
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] destroy
 #|
 #| {e:3;33m}Options:{e:m}
 #|   {e:32m}-h{e:m},{e:32m}--help{e:m}     Show this help text
@@ -23,7 +24,8 @@
 #|    {e:34m}list{e:m}     Lists all containers
 #|    {e:34m}enter{e:m}    Enters a {e:1;4;34m}container{e:m} via docker exec
 #|    {e:34m}ssh{e:m}      Starts an SSH session to the file system host container
-#|    {e:34m}down{e:m}     Stops and removes the defined containers
+#|    {e:34m}down{e:m}     Stops the defined containers
+#|    {e:34m}destroy{e:m}  Stops and removes the defined containers
 #|
 #| {e:3;33m}Parameters:{e:m}
 #|    {e:1;34m}container{e:m}  A valid docker container name
@@ -339,6 +341,12 @@ function _ssh {
 }
 
 function _down {
+    docker-compose down --volumes;
+
+    return ${?};
+}
+
+function _destroy {
     docker-compose down --rmi all --volumes --remove-orphans;
 
     return ${?};
@@ -389,6 +397,11 @@ function main() {
             ;;
         "down")
             _down;
+
+            status=${?};
+            ;;
+        "destroy")
+            _destroy;
 
             status=${?};
             ;;
