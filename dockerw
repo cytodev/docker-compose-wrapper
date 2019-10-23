@@ -427,7 +427,7 @@ function _enter {
 
 function _ssh {
     ssh-copy-id -p 17322 development@0.0.0.0 2> /dev/null;
-    ssh -p 17322 development@0.0.0.0;
+    ssh -p 17322 -t development@0.0.0.0 "cd /mnt/data; bash";
 
     return ${?};
 }
