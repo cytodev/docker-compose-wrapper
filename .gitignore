@@ -5,6 +5,7 @@
 .env
 
 env/*/current
+logs/*
 
 # keep directories with a .gitkeep file
 !/**/.gitkeep
