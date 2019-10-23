@@ -320,11 +320,16 @@ function _env {
 }
 
 function _up {
-    if ! docker-compose build; then
+    _print -i "Building docker image";
+    _print -i "This process might take a while, especially when this is the first build";
+
+    if ! docker-compose build 2>&1 | sed "s/^/    /"; then
         _print -c "Build failed";
 
         return 1;
     fi
+
+    _print -i "Docker image built successfully";
 
     docker-compose up -d;
 
