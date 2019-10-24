@@ -28,7 +28,7 @@ ENV LANG en_US.utf8
 
 # install development dependencies
 RUN apt-get update \
- && apt-get install --no-install-recommends --no-install-suggests -y composer nodejs npm git zip unzip php-zip \
+ && apt-get install --no-install-recommends --no-install-suggests -y composer nodejs npm git zip unzip php-zip php-curl \
  && npm update -g npm -v
 
 # install administrative tools
