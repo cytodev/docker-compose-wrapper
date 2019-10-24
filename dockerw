@@ -8,15 +8,15 @@
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] env
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] up
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] list
-#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] enter <{e:1;34m}container{e:m}> [<{e:1;34m}user>{e:m}]
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] enter {e:1;34m}<container>{e:m} [{e:1;34m}<user>{e:m}]
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] ssh
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] down
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] destroy
 #|
 #| {e:3;33m}Options:{e:m}
-#|   {e:32m}-h{e:m},{e:32m}--help{e:m}     Show this help text
-#|   {e:32m}-v{e:m},{e:32m}--verbose{e:m}  Show verbose information
-#|   {e:32m}--no-auto-ssh{e:m}             Don't enter SSH session after {SELF} up
+#|   {e:32m}-h{e:m},{e:32m}--help{e:m}      Show this help text
+#|   {e:32m}-v{e:m},{e:32m}--verbose{e:m}   Show verbose information
+#|   {e:32m}--no-auto-ssh{e:m}  Don't enter SSH session after {SELF} up
 #|
 #| {e:3;33m}Operations:{e:m}
 #|    {e:34m}setup{e:m}    Enters setup mode to build the .env file
@@ -46,7 +46,7 @@ function _help() {
     local help="$(sed -n "/^#|/,/^$/s/^#| \{0,1\}//p" "${0}")";
 
     help="$(sed "s/{SELF}/${SELF}/" <<< "${help}")";
-    help="$(sed -E "s/\{e:([0-9a-Z;]+)\}/${esc}[\1/g" <<< "${help}")";
+    help="$(sed -E "s/\{e:([0-9a-zA-Z;]+)\}/${esc}[\1/g" <<< "${help}")";
 
     echo "${help}";
 
