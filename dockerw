@@ -424,11 +424,11 @@ function _list {
 
 function _enter {
     local host="${1}";
-    local user="${2:-root}";
+    local user="${2:-development}";
 
     PIPE_SEVERITY="-w";
 
-    docker-compose exec --user "${user}" "${host}" bash -l 2> >(_print_pipe);
+    docker-compose exec --user "${user}" "container-${host}" bash -l 2> >(_print_pipe);
 
     return 0;
 }
