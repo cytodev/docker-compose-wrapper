@@ -16,6 +16,7 @@
 #| {e:3;33m}Options:{e:m}
 #|   {e:32m}-h{e:m},{e:32m}--help{e:m}     Show this help text
 #|   {e:32m}-v{e:m},{e:32m}--verbose{e:m}  Show verbose information
+#|   {e:32m}--no-auto-ssh{e:m}             Don't enter SSH session after {SELF} up
 #|
 #| {e:3;33m}Operations:{e:m}
 #|    {e:34m}setup{e:m}    Enters setup mode to build the .env file
@@ -56,6 +57,8 @@ function _parse_options() {
     local ptr=0;
     local param="";
 
+    OPTS[auto_ssh]=0;
+
     while [[ ${ptr} -le ${#} ]]; do
         param=${!ptr}
 
@@ -70,6 +73,9 @@ function _parse_options() {
                     ;;
                 "-v"|"--verbose")
                     OPTS[verbose]=0;
+                    ;;
+                "--no-auto-ssh")
+                    OPTS[auto_ssh]=1;
                     ;;
             esac
 
@@ -97,9 +103,9 @@ function _print() {
     local stdin_line;
 
     if [[ "${1}" == "-v" ]]; then
-        [[ $(_get_option "verbose") -ne 0 ]] && return 0
+        [[ $(_get_option "verbose") -ne 0 ]] && return 0;
 
-        printf -v severity "%b[%bVERB%b]%b" "\e[1;34m" "\e[0;34m" "\e[1;34m" "\e[m"
+        printf -v severity "%b[%bVERB%b]%b" "\e[1;34m" "\e[0;34m" "\e[1;34m" "\e[m";
         shift;
     fi
 
@@ -404,6 +410,8 @@ function _up {
             docker-compose exec -T swarm-php data2www "${data_path}" "${www_path}" 2> >(_print_pipe) & disown;
         done < "${OWN_DIRECTORY}/config/data2www.cfg"
     fi
+
+    [[ $(_get_option "auto_ssh") -eq 0 ]] && _ssh;
 }
 
 function _list {
