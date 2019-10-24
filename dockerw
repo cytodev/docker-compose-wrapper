@@ -407,7 +407,7 @@ function _up {
 
             _print -v "exec data2www '%s' '%s'" "${data_path}" "${www_path}";
 
-            docker-compose exec -T swarm-php data2www "${data_path}" "${www_path}" 2> >(_print_pipe) & disown;
+            docker-compose exec -T container-php data2www "${data_path}" "${www_path}" 2> >(_print_pipe) & disown;
         done < "${OWN_DIRECTORY}/config/data2www.cfg"
     fi
 
