@@ -319,10 +319,10 @@ function _setup() {
         payload+=("DATA_DIR=${choice}");
 
         choice=$(_share_directory "SSH" "${HOME}/.ssh");
-        [[ ! -z "${choice}" ]] && payload+=("SSH_DIR=${choice}");
+        [[ ! -z "${choice}" ]] && payload+=("USER_SSH_DIR=${choice}");
 
         choice=$(_share_directory "cache" "${HOME}/.cache");
-        [[ ! -z "${choice}" ]] && payload+=("CACHE_DIR=${choice}");
+        [[ ! -z "${choice}" ]] && payload+=("USER_CACHE_DIR=${choice}");
     fi
 
     _print -v -s "building environment file...";
