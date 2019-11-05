@@ -3,8 +3,11 @@
 .idea
 .LSOverride
 .env
+docker-compose.yml
 
 env/*/current
+logs/*
+shared/*
 
 # keep directories with a .gitkeep file
 !/**/.gitkeep
