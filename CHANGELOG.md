@@ -14,3 +14,8 @@ Changes are documented in the following order:
  6. Security
 
 ## [Unreleased](https://github.com/CytoDev/docker-compose-wrapper/compare/master...dev)
+
+[1.0.0] - 2019-11-05
+ - Initial release
+
+[1.0.0]: https://github.com/CytoDev/docker-compose-wrapper/compare/e61315f...v1.0.0
