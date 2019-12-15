@@ -1,0 +1,582 @@
+#!/usr/bin/env bash
+#| {e:60m}Docker wrapper script that automatically generates the correct .env files{e:m}
+#|
+#| {e:3;33m}Usage:{e:m}
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] {e:34m}<operation>{e:m}
+#|
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] setup
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] env
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] up
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] list
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] command {e:1;34m}<container>{e:m} {e:1;34m}<user>{e:m} {e:1;34m}<command>{e:m}
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] enter {e:1;34m}<container>{e:m} [{e:1;34m}<user>{e:m}]
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] ssh
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] down
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] destroy
+#|
+#| {e:3;33m}Options:{e:m}
+#|   {e:32m}-h{e:m},{e:32m}--help{e:m}      Show this help text
+#|   {e:32m}-v{e:m},{e:32m}--verbose{e:m}   Show verbose information
+#|   {e:32m}--no-auto-ssh{e:m}  Don't enter SSH session after {SELF} up
+#|
+#| {e:3;33m}Operations:{e:m}
+#|    {e:34m}setup{e:m}     Enters setup mode to build the .env file
+#|    {e:34m}env{e:m}       Displays .env files in use by the defined containers
+#|    {e:34m}up{e:m}        Builds and starts the defined containers
+#|    {e:34m}list{e:m}      Lists all containers
+#|    {e:34m}enter{e:m}     Enters a {e:1;4;34m}container{e:m} via docker exec
+#|    {e:34m}ssh{e:m}       Starts an SSH session to the file system host container
+#|    {e:34m}composer{e:m}  Runs the composer wrapper inside the PHP container
+#|    {e:34m}down{e:m}      Stops the defined containers
+#|    {e:34m}destroy{e:m}   Stops and removes the defined containers
+#|
+#| {e:3;33m}Parameters:{e:m}
+#|    {e:1;34m}container{e:m}  A valid docker container name
+#|    {e:1;34m}user{e:m}       A valid user on the docker container
+#|    {e:1;34m}command{e:m}    A valid command inside the docker container
+#|
+
+SELF="${0##*/}";
+RESTORE=${PWD};
+OWN_DIRECTORY="$(dirname "$(realpath "${0}")")";
+PIPE_SEVERITY=;
+
+DOCKER_COMPOSE_VERSION="3.7";
+
+declare -a ARGV;
+declare -A OPTS;
+
+function _help() {
+    local esc=$(printf "\033");
+    local help="$(sed -n "/^#|/,/^$/s/^#| \{0,1\}//p" "${0}")";
+
+    help="$(sed "s/{SELF}/${SELF}/" <<< "${help}")";
+    help="$(sed -E "s/\{e:([0-9a-zA-Z;]+)\}/${esc}[\1/g" <<< "${help}")";
+
+    echo "${help}";
+
+    exit 0;
+}
+
+function _parse_options() {
+    local ptr=0;
+    local param="";
+
+    OPTS[auto_ssh]=0;
+
+    while [[ ${ptr} -le ${#} ]]; do
+        param=${!ptr}
+
+        if [[ "${param}" != "-"* ]]; then
+            ARGV+=("${param}");
+
+            ((ptr++));
+        else
+            case "${param}" in
+                "-h"|"--help")
+                    _help;
+                    ;;
+                "-v"|"--verbose")
+                    OPTS[verbose]=0;
+                    ;;
+                "--no-auto-ssh")
+                    OPTS[auto_ssh]=1;
+                    ;;
+            esac
+
+            [[ ${ptr} -gt 1 ]] && set -- ${@:1:$((ptr - 1))} ${@:$((ptr + 1)):$#} || set -- ${@:$((ptr + 1)):$#};
+        fi
+    done
+}
+
+function _get_option() {
+    local keys=(${!OPTS[@]});
+    local key="${1}";
+
+    if [[ ! " ${keys[@]} " =~ " ${key} " ]]; then
+        echo "1";
+    fi
+
+    echo "${OPTS[${key}]#*=}";
+}
+
+function _print() {
+    local messages=();
+    local newline=$'\n';
+    local severity;
+    local message;
+    local stdin_line;
+
+    if [[ "${1}" == "-v" ]]; then
+        [[ $(_get_option "verbose") -ne 0 ]] && return 0;
+
+        printf -v severity "%b[%bVERB%b]%b" "\e[1;34m" "\e[0;34m" "\e[1;34m" "\e[m";
+        shift;
+    fi
+
+    [[ "${1}" == "-i" ]] && printf -v severity "%b[%bINFO%b]%b" "\e[1;32m" "\e[0;32m" "\e[1;32m" "\e[m" && shift;
+    [[ "${1}" == "-w" ]] && printf -v severity "%b[%bWARN%b]%b" "\e[1;33m" "\e[0;33m" "\e[1;33m" "\e[m" && shift;
+    [[ "${1}" == "-c" ]] && printf -v severity "%b[%bCRIT%b]%b" "\e[1;31m" "\e[0;31m" "\e[1;31m" "\e[m" && shift;
+    [[ "${1}" == "-r" ]] && printf "\r%b" "\e[2K" && shift;
+    [[ "${1}" == "-s" ]] && newline= && shift;
+
+    if [[ ! -z "${1}" ]]; then
+        printf -v message "${1}" ${@:2};
+
+        messages+=("${message}");
+    else
+        while IFS=$'\n' read -r stdin_line; do
+            [[ ! -z "${stdin_line}" ]] && messages+=("${stdin_line}");
+        done
+    fi
+
+    for message in "${messages[@]}"; do
+        printf "${severity} %s%s" "${message}" "${newline}" >&2;
+    done
+
+    return 0;
+}
+
+function _print_pipe {
+    local messages=();
+    local message;
+    local stdin_line;
+
+    while IFS=$'\n' read -r stdin_line; do
+        [[ ! -z "${stdin_line}" ]] && messages+=("${stdin_line}");
+    done
+
+    for message in "${messages[@]}"; do
+        _print ${PIPE_SEVERITY} "${message}";
+    done
+}
+
+function _check_dependencies() {
+    local missing=0;
+    local package;
+
+    for package in ${@}; do
+        $(which "$1" &> /dev/null);
+
+        [[ $? -ne 0 ]] && _print -c "Missing required package '%s'" "${package}" && missing+=1;
+    done
+
+    [[ ${missing} -ne 0 ]] && exit 1;
+}
+
+function _ask() {
+    local question="${1}";
+    local default="${2}";
+    local options;
+    local question;
+    local response;
+
+    [[ "${default,,}" == "y" ]] && options="Y/n" || options="y/N";
+
+    printf -v question "%s [%s]: " "${1}" "${options}";
+
+    read -p "${question}" response </dev/tty;
+
+    case "${response,,}" in
+        "y"|"yes")
+            return 0;
+            ;;
+        "n"|"no")
+            return 1;
+            ;;
+        *)
+            [[ "${default,,}" == "y" ]] && return 0 || return 1;
+            ;;
+    esac
+}
+
+function _share_directory {
+    local directory="${1}";
+    local path="${2}";
+    local real_path
+
+    if _ask "Share your local ${directory} directory?" "y"; then
+        real_path=$(realpath "${path}");
+
+        if [[ ${?} -ne 0 ]]; then
+            _print -w "Unable to determine path of ${directory} directory";
+
+            real_path=;
+
+            if _ask "Locate ${directory} directory yourself?" "y"; then
+                while [[ -z "${real_path}" ]]; do
+                    read -e -p "${directory} directory: " path </dev/tty;
+                    real_path="$(realpath "${path}")";
+
+                    if [[ ${?} -ne 0 ]]; then
+                        _print -w "Unable to resolve path of '%s'" "${path}";
+
+                        real_path=;
+
+                        continue;
+                    fi
+                done
+            fi
+        fi
+    fi
+
+    echo "${real_path}";
+}
+
+function _setup() {
+    local input_file_stop=${IFS};
+    local payload=();
+    local choices=();
+    local num_choices=0;
+    local choice;
+    local current;
+    local environment;
+    local compose_file;
+    local option;
+
+    printf "version: \"%s\"\n\nservices:" "${DOCKER_COMPOSE_VERSION}" > "${OWN_DIRECTORY}/docker-compose.yml";
+
+    IFS="#";
+
+    for environment in "${OWN_DIRECTORY}/env/"* ; do
+        choices=();
+        compose_file=;
+        current=;
+        choice=;
+
+        _print -v "traversing '%s'" "${environment}";
+
+        for option in "${environment}"/* ; do
+            _print -v "found option '%s'" "${option}";
+
+            if [[ -L "${option}" ]]; then
+                current=$(readlink -f "${option}");
+                current=${current##*/};
+
+                continue;
+            fi
+
+            choices+=("${option##*/}");
+        done
+
+        num_choices=${#choices[@]};
+
+        _print -v "option currently set: %s" "${current:-null}";
+
+        while [[ -z "${choice}" ]]; do
+            printf "Please select an environment for container: %b%s%b\n" "\e[1m" "${environment##*/}" "\e[m";
+
+            [[ "${environment##*/}" != "host" ]] && printf "  0) none\n"
+
+            for (( i=0; i<${num_choices}; i++ )); do
+                printf "  %s) %s" "$(( $i + 1 ))" "${choices[${i}]%.*}";
+                [[ "${current}" == "${choices[${i}]}" ]] && printf " -> %bcurrent%b" "\e[1;32m" "\e[m";
+                printf "\n";
+            done
+
+            printf "\n";
+            read -p " > " choice </dev/tty;
+
+            choice=$((choice - 1));
+
+            if [[ ${choice} -eq -1 ]] && [[ "${environment##*/}" != "host" ]]; then
+                _print -i "Disabling %s" "${environment##*/}";
+            elif [[ -z "${choice}" ]] || [[ ${choice} -lt 0 ]] || [[ ${choice} -ge ${num_choices} ]]; then
+                _print -w "Invalid choice";
+
+                choice=;
+
+                continue;
+            fi
+
+            if [[ -f "${environment}/current" ]]; then
+                _print -v "removing old symlink";
+
+                PIPE_SEVERITY="-c";
+
+                if ! rm -f "${environment}/current"  2> >(_print_pipe); then
+                    return 1;
+                fi
+            fi
+
+            [[ ${choice} -eq -1 ]] && continue;
+
+            _print -v "symlinking '%s' to '%s'" "${environment}/${choices[${choice}]}" "${environment}/current";
+
+            if ! $(ln -sr "${environment}/${choices[${choice}]}" "${environment}/current"); then
+                _print -c "Failed to set %s as the current %s environment" "${choices[${choice}]}" "${environment##*/}";
+
+                return 1;
+            fi
+        done
+
+        if [[ -L "${environment}/current" ]]; then
+            current=$(readlink -f "${environment}/current");
+            current=${current##*/};
+
+            payload+=("################################################################################");
+            payload+=("# ${environment##*/} (${current%.*})");
+            payload+=($(IFS=$'\n'; cat "${environment}/current"));
+            payload+=("");
+
+            compose_file="${OWN_DIRECTORY}/containers/${environment##*/}/compose.yml";
+
+            if [[ -f "${compose_file}" ]]; then
+                _print -v "appending %s to docker-compose.yml" "${compose_file}";
+
+                echo "" >> "${OWN_DIRECTORY}/docker-compose.yml"
+                sed "s|^|  |" "${compose_file}" >> "${OWN_DIRECTORY}/docker-compose.yml";
+            fi
+        fi
+    done
+
+    if [[ ! -z "${payload[@]}" ]]; then
+        payload+=("################################################################################");
+        payload+=("# Global config");
+        payload+=("USER_ID=$(id -u ${USER})");
+        payload+=("GROUP_ID=$(id -g ${USER})");
+        choice=;
+
+        while [[ -z "${choice}" ]]; do
+            read -e -p "Host data directory: " choice </dev/tty;
+            choice="$(realpath "${choice}")";
+
+            if [[ ${?} -ne 0 ]]; then
+                _print -w "Unable to resolve path of '%s'" "${choice}";
+
+                choice=;
+
+                continue;
+            fi
+        done
+
+        payload+=("DATA_DIR=${choice}");
+
+        choice=$(_share_directory "SSH" "${HOME}/.ssh");
+        [[ ! -z "${choice}" ]] && payload+=("USER_SSH_DIR=${choice}");
+
+        choice=$(_share_directory "cache" "${HOME}/.cache");
+        [[ ! -z "${choice}" ]] && payload+=("USER_CACHE_DIR=${choice}");
+    fi
+
+    _print -v -s "building environment file...";
+
+    printf "%s\n" "${payload[@]}" > "${OWN_DIRECTORY}/.env";
+
+    _print -v -r "building environment file...done";
+
+    IFS=${input_file_stop};
+
+    return 0;
+}
+
+function _env {
+    local environment;
+    local current;
+
+    for environment in "${OWN_DIRECTORY}/env/"* ; do
+        _print -v "traversing '%s'" "${environment}";
+
+        [[ ! -L "${environment}/current" ]] && continue;
+
+        current=$(readlink -f "${environment}/current");
+        current=${current##*/};
+
+        _print -v "found symlink to '%s'" "${current}";
+
+        printf "%b%s:%s%b\n" "\e[1m" "${environment##*/}" "${current%.*}" "\e[m";
+        sed "s/^/  /" <(cat "${environment}/current");
+        printf "\n";
+    done
+
+    return 0;
+}
+
+function _verify_env {
+    [[ -f "${OWN_DIRECTORY}/.env" ]] && return 0;
+
+    _print -w "No .env present in '%s'" "${OWN_DIRECTORY}";
+
+    if _ask "Enter setup?" "y"; then
+        _setup;
+
+        [[ ! ${?} ]] && _print -c "Setup failed";
+    fi
+
+    if [[ ! -f "${OWN_DIRECTORY}/.env" ]]; then
+        _print -c "Unable to continue without a .env file";
+
+        exit 1;
+    fi
+}
+
+function _up {
+    local data_path;
+    local www_path;
+
+    _verify_env;
+
+    _print -i "Building docker image";
+    _print -i "This process might take a while, especially when this is the first build";
+
+    if ! docker-compose build 2>&1 | sed "s/^/    /"; then
+        _print -c "Build failed";
+
+        return 1;
+    fi
+
+    _print -i "Docker image built successfully";
+
+    docker-compose up -d;
+
+    if [[ ${?} -eq 0 ]]; then
+        PIPE_SEVERITY="-c";
+
+        while read data_path www_path; do
+            [[ -z "${data_path}" ]] || [[ -z "${www_path}" ]] && continue;
+
+            _print -v "exec data2www '%s' '%s'" "${data_path}" "${www_path}";
+
+            docker-compose exec -T container-php data2www "${data_path}" "${www_path}" 2> >(_print_pipe) & disown;
+        done < "${OWN_DIRECTORY}/config/data2www.cfg"
+    fi
+
+    [[ $(_get_option "auto_ssh") -eq 0 ]] && _ssh;
+}
+
+function _list {
+    PIPE_SEVERITY="-w";
+
+    docker ps -a 2> >(_print_pipe);
+
+    return ${?};
+}
+
+function _command() {
+    local container="${1}";
+    local user="${2}";
+
+    [[ -z "${container}" ]] && _print -w "No container specified" && return 127;
+    [[ -z "${user}"      ]] && _print -w "No user specified"      && return 127;
+    [[ -z "${3}"         ]] && _print -w "No command specified"   && return 127;
+
+    [[ "${container}" != "container-"* ]] && container="container-${container}";
+
+    PIPE_SEVERITY="-w";
+
+    docker-compose exec --user "${user}" "${container}" ${@:3} 2> >(_print_pipe);
+
+    return 0;
+}
+
+function _enter {
+    local container="${1}";
+    local user="${2:-development}";
+
+    _command "${container}" "${user}" bash -l;
+
+    return ${?};
+}
+
+function _ssh {
+    ssh-copy-id -p 1337 development@0.0.0.0 2> /dev/null;
+    ssh -p 1337 -t development@0.0.0.0 "cd /mnt/data; bash";
+
+    return ${?};
+}
+
+function _composer {
+    docker-compose exec --user development container-php /mnt/data/composerw ${@};
+
+    return ${?};
+}
+
+function _clean_logs() {
+    find "${OWN_DIRECTORY}/logs" -type f \( ! -name .gitkeep \) -print0 | xargs -0 rm -vf;
+}
+
+function _down {
+    _clean_logs;
+
+    docker-compose down --volumes;
+
+    return ${?};
+}
+
+function _destroy {
+    _clean_logs;
+
+    ssh-keygen -f ~/.ssh/known_hosts -R "[0.0.0.0]:1337";
+
+    docker-compose down --rmi all --volumes --remove-orphans;
+
+    return ${?};
+}
+
+function main() {
+    local status=127;
+
+    _check_dependencies "docker" "docker-compose";
+    _parse_options ${@};
+
+    _print -v "SELF=%s" "${SELF}";
+    _print -v "RESTORE=%s" "${RESTORE}";
+    _print -v "OWN_DIRECTORY=%s" "${OWN_DIRECTORY}";
+
+    case "${ARGV[1]}" in
+        "setup")
+            _setup;
+
+            status=${?};
+            ;;
+        "env")
+            _env;
+
+            status=${?};
+            ;;
+        "up")
+            _up
+
+            status=${?};
+            ;;
+        "list")
+            _list;
+
+            status=${?};
+            ;;
+        "command")
+            _command ${ARGV[@]:2};
+
+            status=${?};
+            ;;
+        "enter")
+            _enter ${ARGV[@]:2};
+
+            status=${?};
+            ;;
+        "ssh")
+            _ssh;
+
+            status=${?};
+            ;;
+        "composer")
+            _composer ${ARGV[@]:2};
+
+            status=${?};
+            ;;
+        "down")
+            _down;
+
+            status=${?};
+            ;;
+        "destroy")
+            _destroy;
+
+            status=${?};
+            ;;
+    esac
+
+    return ${status};
+}
+
+main ${@};
