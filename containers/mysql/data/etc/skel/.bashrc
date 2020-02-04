@@ -80,7 +80,9 @@ export HISTTIMEFORMAT="%Y-%m-%d %T → ";
 
 ############################################################################ SSH
 # Start the SSH agent on every shell session
-eval $(ssh-agent -s);
+if [[ -x /usr/bin/ssh-agent ]]; then
+    eval $(ssh-agent -s);
+fi
 
 ############################################################################ GPG
 export GPG_TTY=$(tty)
