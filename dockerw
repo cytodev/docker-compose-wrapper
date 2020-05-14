@@ -8,6 +8,7 @@
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] env
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] up
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] list
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] logs [{e:1;34m}<container>{e:m}]
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] command {e:1;34m}<container>{e:m} {e:1;34m}<user>{e:m} {e:1;34m}<command>{e:m}
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] enter {e:1;34m}<container>{e:m} [{e:1;34m}<user>{e:m}]
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] ssh
@@ -24,6 +25,7 @@
 #|    {e:34m}env{e:m}       Displays .env files in use by the defined containers
 #|    {e:34m}up{e:m}        Builds and starts the defined containers
 #|    {e:34m}list{e:m}      Lists all containers
+#|    {e:34m}logs{e:m}      Display container logs
 #|    {e:34m}enter{e:m}     Enters a {e:1;4;34m}container{e:m} via docker exec
 #|    {e:34m}ssh{e:m}       Starts an SSH session to the file system host container
 #|    {e:34m}composer{e:m}  Runs the composer wrapper inside the PHP container
@@ -464,6 +466,22 @@ function _list {
     return ${?};
 }
 
+function _logs {
+    local container="${1}";
+
+    PIPE_SEVERITY="-w";
+
+    if [[ -n "${container}" ]]; then
+        [[ "${container}" != "container-"* ]] && container="container-${container}";
+
+        docker-compose logs "${container}" 2> >(_print_pipe);
+    else
+        docker-compose logs 2> >(_print_pipe);
+    fi
+
+    return ${?};
+}
+
 function _command() {
     local container="${1}";
     local user="${2}";
@@ -553,6 +571,11 @@ function main() {
             ;;
         "list")
             _list;
+
+            status=${?};
+            ;;
+        "logs")
+            _logs "${ARGV[@]:2}";
 
             status=${?};
             ;;
