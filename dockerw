@@ -228,11 +228,22 @@ function _setup() {
     local payload=();
     local choices=();
     local num_choices=0;
+    local instance_name;
     local choice;
     local current;
     local environment;
     local compose_file;
     local option;
+
+    if _ask "Give this instance a name?" "y"; then
+        choice=;
+
+        while [[ -z "${choice}" ]]; do
+            read -e -p "Name: " choice </dev/tty;
+        done
+
+        instance_name="${choice}-";
+    fi
 
     printf "version: \"%s\"\n\nservices:" "${DOCKER_COMPOSE_VERSION}" > "${OWN_DIRECTORY}/docker-compose.yml";
 
@@ -315,7 +326,7 @@ function _setup() {
             current=${current##*/};
 
             payload+=("################################################################################");
-            payload+=("# ${environment##*/} (${current%.*})");
+            payload+=("# ${instance_name}${environment##*/} (${current%.*})");
             payload+=($(IFS=$'\n'; cat "${environment}/current"));
             payload+=("");
 
@@ -333,6 +344,7 @@ function _setup() {
     if [[ ! -z "${payload[@]}" ]]; then
         payload+=("################################################################################");
         payload+=("# Global config");
+        payload+=("INSTANCE_NAME=${instance_name}");
         payload+=("USER_ID=$(id -u ${USER})");
         payload+=("GROUP_ID=$(id -g ${USER})");
         choice=;

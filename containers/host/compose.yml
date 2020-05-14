@@ -1,6 +1,6 @@
 host:
   image: host
-  container_name: docker-host
+  container_name: ${INSTANCE_NAME}docker-host
   hostname: docker-host
   restart: unless-stopped
   ports:
