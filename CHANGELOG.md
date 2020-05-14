@@ -15,7 +15,32 @@ Changes are documented in the following order:
 
 ## [Unreleased](https://github.com/CytoDev/docker-compose-wrapper/compare/master...dev)
 
-[1.0.0] - 2019-11-05
+## [1.1.0] - 2020-05-14
+### Added
+ - add Instance naming support
+ - add base Ubuntu releases to environments
+ - add default host Dockerfile
+ - add `gpg` to standard host release
+ - add `dockerw logs` command
+ - add `shared-content-sync` to default shared directory
+ - add shared directories
+ - add standalone functionality
+
+### Changed
+ - Default `.bashrc` file
+ - Moved shared content to shared directory
+
+### Removed
+ - `dockerw ssh` command in favour of `dockerw enter <container>`
+ - `dockerw composer` command because it is too specific
+
+### Fixed
+ - Fixed symbolic link overriding issues in `dockerw setup`
+ - Fixed existential crisis when executed outside of own directory
+ - Fixed function calls calling subshells
+
+## [1.0.0] - 2019-11-05
  - Initial release
 
+[1.1.0]: https://github.com/CytoDev/docker-compose-wrapper/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CytoDev/docker-compose-wrapper/compare/e61315f...v1.0.0

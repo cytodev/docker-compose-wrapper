@@ -1,18 +1,16 @@
-host:
-  image: host
-  container_name: docker-host
+container-host:
+  image: container:host
+  container_name: ${INSTANCE_NAME}docker-host
   hostname: docker-host
   restart: unless-stopped
-  ports:
-    # This port (1337) is only used by neo4j-shell, Sails.js, and WASTE Encrypted File Sharing
-    # This means that host collisions are very unlikely.
-    - "1337:22"
   build:
-    context: ./containers/host/
+    context: ./
+    dockerfile: ./containers/host/Dockerfile
     args:
       - ARG_USER_ID=${USER_ID}
       - ARG_GROUP_ID=${GROUP_ID}
       - ARG_UBUNTU_VERSION=${UBUNTU_VERSION}
+      - ARG_HOST_DEPENDENCIES=${HOST_DEPENDENCIES}
   volumes: &host-volumes
     - ./config/hosts:/etc/hosts
     - type: bind

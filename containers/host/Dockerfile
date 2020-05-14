@@ -1,11 +1,20 @@
 ARG ARG_UBUNTU_VERSION=${ARG_UBUNTU_VERSION}
 FROM ubuntu:${ARG_UBUNTU_VERSION}
 
-# copy everything from global to container root
-COPY data /
+# copy specific overwrites from container data
+COPY containers/host/data /
 
-# ensure the mountpoint exists
+# this is the only place we can move over the hosts file
+COPY shared/etc/hosts /etc/hosts
+
+# initially copy the shared directory but mount it afterwards
+COPY shared /shared
+
+# ensure the data mountpoint exists
 RUN mkdir -p /mnt/data
+
+# set up shared content links
+RUN /shared/usr/local/bin/shared-content-sync
 
 # user creation
 ARG ARG_USER_ID=${ARG_USER_ID}
@@ -31,26 +40,16 @@ ENV LANG en_US.utf8
 
 # gitting guud
 RUN apt-get update \
- && apt-get install -y git git-lfs git-flow zip
-
-# install development dependencies
-RUN apt-get update \
- && apt-get install --no-install-recommends --no-install-suggests -y composer nodejs npm unzip php-zip php-curl file \
- && npm update -g npm -v
+ && apt-get install -y git git-lfs git-flow zip gpg
 
 # install administrative tools
 RUN apt-get update \
- && apt-get install --no-install-recommends --no-install-suggests -y sudo lnav htop iputils-ping peco
+ && apt-get install --no-install-recommends --no-install-suggests -y sudo lnav htop iputils-ping peco nano
 
-# install sshd
+# install optional dependencies
+ARG ARG_HOST_DEPENDENCIES=${ARG_HOST_DEPENDENCIES}
 RUN apt-get update \
- && apt-get install --no-install-recommends --no-install-suggests -y openssh-server \
- && mkdir -p /var/run/sshd \
- && sed "s@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g" -i /etc/pam.d/sshd
+ && apt-get install -y ${ARG_HOST_DEPENDENCIES}
 
-ENV NOTVISIBLE "in users profile"
-RUN echo "export VISIBLE=now" >> /etc/profile
-
-EXPOSE 22
-
-CMD ["/usr/sbin/sshd", "-D"]
+# endless loop to keep container alive
+CMD ["shared-content-sync", "--loop"]
