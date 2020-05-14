@@ -31,7 +31,7 @@ ENV LANG en_US.utf8
 
 # gitting guud
 RUN apt-get update \
- && apt-get install -y git git-lfs git-flow zip
+ && apt-get install -y git git-lfs git-flow zip gpg
 
 # install administrative tools
 RUN apt-get update \
