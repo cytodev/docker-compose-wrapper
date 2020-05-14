@@ -28,7 +28,6 @@
 #|    {e:34m}logs{e:m}      Display container logs
 #|    {e:34m}command{e:m}   Execute a {e:1;4;34m}command{e:m} as {e:1;4;34m}user{e:m} inside {e:1;4;34m}container{e:m}
 #|    {e:34m}enter{e:m}     Enters a {e:1;4;34m}container{e:m} via docker exec
-#|    {e:34m}ssh{e:m}       Starts an SSH session to the file system host container
 #|    {e:34m}down{e:m}      Stops the defined containers
 #|    {e:34m}destroy{e:m}   Stops and removes the defined containers
 #|
@@ -528,8 +527,6 @@ function _down {
 function _destroy {
     _clean_logs;
 
-    ssh-keygen -f ~/.ssh/known_hosts -R "[0.0.0.0]:1337";
-
     docker-compose down --rmi all --volumes --remove-orphans;
 
     return ${?};
@@ -582,11 +579,6 @@ function main() {
             ;;
         "enter")
             _enter "${ARGV[@]:2}";
-
-            status=${?};
-            ;;
-        "ssh")
-            _ssh;
 
             status=${?};
             ;;
