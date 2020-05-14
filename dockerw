@@ -313,8 +313,6 @@ function _init {
 
         return 1;
     fi
-
-    mkdir ".${SELF}/logs";
 }
 
 function _setup {
