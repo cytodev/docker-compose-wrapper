@@ -27,7 +27,6 @@
 #|    {e:34m}logs{e:m}      Display container logs
 #|    {e:34m}enter{e:m}     Enters a {e:1;4;34m}container{e:m} via docker exec
 #|    {e:34m}ssh{e:m}       Starts an SSH session to the file system host container
-#|    {e:34m}composer{e:m}  Runs the composer wrapper inside the PHP container
 #|    {e:34m}down{e:m}      Stops the defined containers
 #|    {e:34m}destroy{e:m}   Stops and removes the defined containers
 #|
@@ -505,12 +504,6 @@ function _enter {
     return ${?};
 }
 
-function _composer {
-    docker-compose exec --user development container-php /mnt/data/composerw ${@};
-
-    return ${?};
-}
-
 function _clean_logs() {
     find "${OWN_DIRECTORY}/logs" -type f \( ! -name .gitkeep \) -print0 | xargs -0 rm -vf;
 }
@@ -581,11 +574,6 @@ function main() {
             ;;
         "ssh")
             _ssh;
-
-            status=${?};
-            ;;
-        "composer")
-            _composer ${ARGV[@]:2};
 
             status=${?};
             ;;
