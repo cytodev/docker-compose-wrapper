@@ -314,7 +314,7 @@ function _setup() {
 
             _print -v "symlinking '%s' to '%s'" "${environment}/${choices[${choice}]}" "${environment}/current";
 
-            if ! $(ln -sr "${environment}/${choices[${choice}]}" "${environment}/current"); then
+            if ! $(ln -fnrs "${environment}/${choices[${choice}]}" "${environment}/current"); then
                 _print -c "Failed to set %s as the current %s environment" "${choices[${choice}]}" "${environment##*/}";
 
                 return 1;
