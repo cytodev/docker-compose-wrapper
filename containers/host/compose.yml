@@ -13,6 +13,7 @@ host:
       - ARG_USER_ID=${USER_ID}
       - ARG_GROUP_ID=${GROUP_ID}
       - ARG_UBUNTU_VERSION=${UBUNTU_VERSION}
+      - ARG_HOST_DEPENDENCIES=${HOST_DEPENDENCIES}
   volumes: &host-volumes
     - ./config/hosts:/etc/hosts
     - type: bind

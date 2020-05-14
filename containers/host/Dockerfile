@@ -38,9 +38,10 @@ RUN apt-get update \
  && apt-get install --no-install-recommends --no-install-suggests -y composer nodejs npm unzip php-zip php-curl file \
  && npm update -g npm -v
 
-# install administrative tools
+# install optional dependencies
+ARG ARG_HOST_DEPENDENCIES=${ARG_HOST_DEPENDENCIES}
 RUN apt-get update \
- && apt-get install --no-install-recommends --no-install-suggests -y sudo lnav htop iputils-ping peco
+ && apt-get install -y ${ARG_HOST_DEPENDENCIES}
 
 # install sshd
 RUN apt-get update \
