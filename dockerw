@@ -47,7 +47,7 @@ DOCKER_COMPOSE_VERSION="3.7";
 declare -a ARGV;
 declare -A OPTS;
 
-function _help() {
+function _help {
     local esc=$(printf "\033");
     local help="$(sed -n "/^#|/,/^$/s/^#| \{0,1\}//p" "${0}")";
 
@@ -59,7 +59,7 @@ function _help() {
     exit 0;
 }
 
-function _parse_options() {
+function _parse_options {
     local ptr=0;
     local param="";
 
@@ -89,7 +89,7 @@ function _parse_options() {
     done
 }
 
-function _get_option() {
+function _get_option {
     local keys=();
     local key="${1}";
 
@@ -102,7 +102,7 @@ function _get_option() {
     echo "${OPTS[${key}]#*=}";
 }
 
-function _print() {
+function _print {
     local messages=();
     local newline=$'\n';
     local severity;
@@ -156,6 +156,7 @@ function _print_pipe {
 }
 
 function _check_dependencies() {
+function _check_dependencies {
     local missing=0;
     local package;
 
@@ -166,7 +167,7 @@ function _check_dependencies() {
     [[ ${missing} -ne 0 ]] && exit 1;
 }
 
-function _ask() {
+function _ask {
     local question="${1}";
     local default="${2}";
     local options;
@@ -240,17 +241,18 @@ function _verify_env {
     fi
 }
 
-function _clean_logs() {
+function _clean_logs {
     find "${OWN_DIRECTORY}/logs" -type f \( ! -name .gitkeep \) -print0 | xargs -0 rm -vf;
 }
 
-function _sigint_handler() {
+function _sigint_handler {
     cd "${RESTORE}" || exit 1;
 }
 
 ################################################################################
 
 function _setup() {
+function _setup {
     local input_file_stop=${IFS};
     local payload=();
     local choices=();
@@ -490,7 +492,7 @@ function _logs {
     return ${?};
 }
 
-function _command() {
+function _command {
     local container="${1}";
     local user="${2}";
 
@@ -534,7 +536,7 @@ function _destroy {
 
 ################################################################################
 
-function main() {
+function main {
     local status=127;
 
     _check_dependencies "docker" "docker-compose";
