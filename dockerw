@@ -237,12 +237,16 @@ function _verify_env {
     if [[ ! -f "${OWN_DIRECTORY}/.env" ]]; then
         _print -c "Unable to continue without a .env file";
 
-        exit 1;
+        return 1;
     fi
 }
 
 function _clean_logs() {
     find "${OWN_DIRECTORY}/logs" -type f \( ! -name .gitkeep \) -print0 | xargs -0 rm -vf;
+}
+
+function _sigint_handler() {
+    cd "${RESTORE}" || exit 1;
 }
 
 ################################################################################
@@ -433,7 +437,9 @@ function _up {
     local data_path;
     local www_path;
 
-    _verify_env;
+    if ! _verify_env; then
+        return 1;
+    fi
 
     _print -i "Building docker image";
     _print -i "This process might take a while, especially when this is the first build";
@@ -529,11 +535,15 @@ function _destroy {
     return ${?};
 }
 
+################################################################################
+
 function main() {
     local status=127;
 
     _check_dependencies "docker" "docker-compose";
     _parse_options "${@}";
+
+    cd "${OWN_DIRECTORY}" || exit 1;
 
     _print -v "SELF=%s" "${SELF}";
     _print -v "RESTORE=%s" "${RESTORE}";
@@ -596,5 +606,7 @@ function main() {
 }
 
 ################################################################################
+
+trap _sigint_handler SIGINT;
 
 main "${@}";
