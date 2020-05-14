@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -e;
+
+SHARED_PATH="/shared";
+
+function _link() {
+    local filepath;
+    local filename;
+    local dirname;
+
+    while read -r filepath; do
+        filename="${filepath#"${SHARED_PATH}"}";
+        dirname="$(dirname "${filename}")";
+
+        # skip hosts file since that should be handled by the Dockerfile
+        [[ "$(basename "${filename}")" == "hosts" ]] && continue;
+
+        [[ ! -d "${dirname}" ]] && mkdir -pv "${dirname}" 2> /dev/stderr;
+        [[ ! -L "${filename}" ]] && rm -fv "${filename}" 2> /dev/stderr \
+                                 && ln -sv "/shared${filename}" "${filename}" 2> /dev/stderr;
+    done < <(find "${SHARED_PATH}" -type f);
+}
+
+function main() {
+    if [[ "${1}" == "--loop" ]]; then
+        while true; do
+            _link;
+            sleep 30;
+        done
+    else
+        _link;
+    fi
+}
+
+main "${@}";
