@@ -33,10 +33,9 @@ ENV LANG en_US.utf8
 RUN apt-get update \
  && apt-get install -y git git-lfs git-flow zip
 
-# install development dependencies
+# install administrative tools
 RUN apt-get update \
- && apt-get install --no-install-recommends --no-install-suggests -y composer nodejs npm unzip php-zip php-curl file \
- && npm update -g npm -v
+ && apt-get install --no-install-recommends --no-install-suggests -y sudo lnav htop iputils-ping peco nano
 
 # install optional dependencies
 ARG ARG_HOST_DEPENDENCIES=${ARG_HOST_DEPENDENCIES}
