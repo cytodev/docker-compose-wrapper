@@ -11,14 +11,13 @@
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] logs [{e:1;34m}<container>{e:m}]
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] command {e:1;34m}<container>{e:m} {e:1;34m}<user>{e:m} {e:1;34m}<command>{e:m}
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] enter {e:1;34m}<container>{e:m} [{e:1;34m}<user>{e:m}]
-#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] ssh
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] down
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] destroy
 #|
 #| {e:3;33m}Options:{e:m}
-#|   {e:32m}-h{e:m},{e:32m}--help{e:m}      Show this help text
-#|   {e:32m}-v{e:m},{e:32m}--verbose{e:m}   Show verbose information
-#|   {e:32m}--no-auto-ssh{e:m}  Don't enter SSH session after {SELF} up
+#|   {e:32m}-h{e:m},{e:32m}--help{e:m}     Show this help text
+#|   {e:32m}-v{e:m},{e:32m}--verbose{e:m}  Show verbose information
+#|   {e:32m}--auto-enter{e:m}  Enter into host container after {SELF} up
 #|
 #| {e:3;33m}Operations:{e:m}
 #|    {e:34m}setup{e:m}     Enters setup mode to build the .env file
@@ -64,8 +63,6 @@ function _parse_options() {
     local ptr=0;
     local param="";
 
-    OPTS[auto_ssh]=0;
-
     while [[ ${ptr} -le ${#} ]]; do
         param=${!ptr}
 
@@ -81,8 +78,8 @@ function _parse_options() {
                 "-v"|"--verbose")
                     OPTS[verbose]=0;
                     ;;
-                "--no-auto-ssh")
-                    OPTS[auto_ssh]=1;
+                "--auto-enter")
+                    OPTS[auto_enter]=0;
                     ;;
             esac
 
@@ -455,7 +452,7 @@ function _up {
         done < "${OWN_DIRECTORY}/config/data2www.cfg"
     fi
 
-    [[ $(_get_option "auto_ssh") -eq 0 ]] && _ssh;
+    [[ $(_get_option "auto_enter") -eq 0 ]] && _enter "host";
 }
 
 function _list {
@@ -504,13 +501,6 @@ function _enter {
     local user="${2:-development}";
 
     _command "${container}" "${user}" bash -l;
-
-    return ${?};
-}
-
-function _ssh {
-    ssh-copy-id -p 1337 development@0.0.0.0 2> /dev/null;
-    ssh -p 1337 -t development@0.0.0.0 "cd /mnt/data; bash";
 
     return ${?};
 }
