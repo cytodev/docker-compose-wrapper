@@ -5,6 +5,7 @@
 #| {e:3;33m}Usage:{e:m}
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] {e:34m}<operation>{e:m}
 #|
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] init
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] setup
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] env
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] up
@@ -21,6 +22,7 @@
 #|   {e:32m}--auto-enter{e:m}  Enter into host container after {SELF} up
 #|
 #| {e:3;33m}Operations:{e:m}
+#|    {e:34m}init{e:m}      Initializes a {SELF} project (similar to git init)
 #|    {e:34m}setup{e:m}     Enters setup mode to build the .env file
 #|    {e:34m}env{e:m}       Displays .env files in use by the defined containers
 #|    {e:34m}up{e:m}        Builds and starts the defined containers
@@ -40,6 +42,7 @@
 SELF="${0##*/}";
 RESTORE=${PWD};
 OWN_DIRECTORY="$(dirname "$(realpath "${0}")")";
+STANDALONE=;
 PIPE_SEVERITY=;
 
 DOCKER_COMPOSE_VERSION="3.7";
@@ -155,7 +158,22 @@ function _print_pipe {
     done
 }
 
-function _check_dependencies() {
+function _set_base {
+    if [[ ${STANDALONE} -eq 0 ]]; then
+        if [[ "${ARGV[1]}" == "init" ]]; then
+            return 0;
+        fi
+
+        if ! OWN_DIRECTORY=$(_find_project "${RESTORE}"); then
+            _print -c "Not a %s directory (or any parent up to /)" "${SELF}";
+
+            return 1;
+        fi
+    fi
+
+    cd "${OWN_DIRECTORY}" || return 1;
+}
+
 function _check_dependencies {
     local missing=0;
     local package;
@@ -191,6 +209,24 @@ function _ask {
             [[ "${default,,}" == "y" ]] && return 0 || return 1;
             ;;
     esac
+}
+
+function _find_project {
+    local test_path="${1}";
+
+    if [[ -d "${test_path}/.${SELF}" ]]; then
+        printf "%s/.%s" "${test_path}" "${SELF}";
+
+        return 0;
+    fi
+
+    if [[ ${test_path} == "/" ]]; then
+        return 1;
+    fi
+
+    _find_project "$(realpath "$test_path/../")";
+
+    return ${?};
 }
 
 function _share_directory {
@@ -251,7 +287,36 @@ function _sigint_handler {
 
 ################################################################################
 
-function _setup() {
+function _init {
+    _print -v "Initializing %s project in %s" "${SELF}" "${RESTORE}";
+
+    if [[ ${STANDALONE} -ne 0 ]]; then
+        _print -c "'%s init' only works in standalone mode" "${SELF}";
+
+        return 1;
+    fi
+
+    if [[ ! -d "/usr/local/share/${SELF}" ]]; then
+        _print -c "Missing /usr/local/share/%s directory" "${SELF}";
+
+        return 1;
+    fi
+
+    if ! mkdir ".${SELF}"; then
+        _print -c "Unable to create %s project in %s" "${SELF}" "${RESTORE}";
+
+        return 1;
+    fi
+
+    if ! cp -r "/usr/local/share/${SELF}/"* ".${SELF}"; then
+        _print -c "Failed to initialize %s project in %s" "${SELF}" "${RESTORE}";
+
+        return 1;
+    fi
+
+    mkdir ".${SELF}/logs";
+}
+
 function _setup {
     local input_file_stop=${IFS};
     local payload=();
@@ -443,6 +508,7 @@ function _up {
     fi
 
     _print -i "Building docker image";
+    _print -v "Project root: %s" "${PWD}";
     _print -i "This process might take a while, especially when this is the first build";
 
     if ! docker-compose build 2>&1 | sed "s/^/    /"; then
@@ -539,16 +605,28 @@ function _destroy {
 function main {
     local status=127;
 
+    test "${OWN_DIRECTORY}" == "/usr/local/bin";
+
+    STANDALONE=${?};
+
     _check_dependencies "docker" "docker-compose";
     _parse_options "${@}";
 
-    cd "${OWN_DIRECTORY}" || exit 1;
+    if ! _set_base; then
+        return 1;
+    fi
 
     _print -v "SELF=%s" "${SELF}";
     _print -v "RESTORE=%s" "${RESTORE}";
     _print -v "OWN_DIRECTORY=%s" "${OWN_DIRECTORY}";
+    _print -v "STANDALONE=%s" "${STANDALONE}";
 
     case "${ARGV[1]}" in
+        "init")
+            _init;
+
+            status=${?};
+            ;;
         "setup")
             _setup;
 
