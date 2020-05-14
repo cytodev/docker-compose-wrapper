@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2155
 #| {e:60m}Docker wrapper script that automatically generates the correct .env files{e:m}
 #|
 #| {e:3;33m}Usage:{e:m}
@@ -25,6 +26,7 @@
 #|    {e:34m}up{e:m}        Builds and starts the defined containers
 #|    {e:34m}list{e:m}      Lists all containers
 #|    {e:34m}logs{e:m}      Display container logs
+#|    {e:34m}command{e:m}   Execute a {e:1;4;34m}command{e:m} as {e:1;4;34m}user{e:m} inside {e:1;4;34m}container{e:m}
 #|    {e:34m}enter{e:m}     Enters a {e:1;4;34m}container{e:m} via docker exec
 #|    {e:34m}ssh{e:m}       Starts an SSH session to the file system host container
 #|    {e:34m}down{e:m}      Stops the defined containers
@@ -50,7 +52,7 @@ function _help() {
     local esc=$(printf "\033");
     local help="$(sed -n "/^#|/,/^$/s/^#| \{0,1\}//p" "${0}")";
 
-    help="$(sed "s/{SELF}/${SELF}/" <<< "${help}")";
+    help="${help//\{SELF\}/${SELF}}";
     help="$(sed -E "s/\{e:([0-9a-zA-Z;]+)\}/${esc}[\1/g" <<< "${help}")";
 
     echo "${help}";
@@ -82,16 +84,19 @@ function _parse_options() {
                     ;;
             esac
 
-            [[ ${ptr} -gt 1 ]] && set -- ${@:1:$((ptr - 1))} ${@:$((ptr + 1)):$#} || set -- ${@:$((ptr + 1)):$#};
+            # shellcheck disable=SC2015
+            [[ ${ptr} -gt 1 ]] && set -- "${@:1:$((ptr - 1))}" "${@:$((ptr + 1)):$#}" || set -- "${@:$((ptr + 1)):$#}";
         fi
     done
 }
 
 function _get_option() {
-    local keys=(${!OPTS[@]});
+    local keys=();
     local key="${1}";
 
-    if [[ ! " ${keys[@]} " =~ " ${key} " ]]; then
+    IFS=" " read -r -a keys <<< "${!OPTS[@]}";
+
+    if [[ ! " ${keys[*]} " =~ ${key} ]]; then
         echo "1";
     fi
 
@@ -118,13 +123,15 @@ function _print() {
     [[ "${1}" == "-r" ]] && printf "\r%b" "\e[2K" && shift;
     [[ "${1}" == "-s" ]] && newline= && shift;
 
-    if [[ ! -z "${1}" ]]; then
-        printf -v message "${1}" ${@:2};
+    if [[ -n "${1}" ]]; then
+        # This is intentional in order to pre-format the string
+        # shellcheck disable=SC2059
+        printf -v message "${1}" "${@:2}";
 
         messages+=("${message}");
     else
         while IFS=$'\n' read -r stdin_line; do
-            [[ ! -z "${stdin_line}" ]] && messages+=("${stdin_line}");
+            [[ -n "${stdin_line}" ]] && messages+=("${stdin_line}");
         done
     fi
 
@@ -141,7 +148,7 @@ function _print_pipe {
     local stdin_line;
 
     while IFS=$'\n' read -r stdin_line; do
-        [[ ! -z "${stdin_line}" ]] && messages+=("${stdin_line}");
+        [[ -n "${stdin_line}" ]] && messages+=("${stdin_line}");
     done
 
     for message in "${messages[@]}"; do
@@ -153,10 +160,8 @@ function _check_dependencies() {
     local missing=0;
     local package;
 
-    for package in ${@}; do
-        $(which "$1" &> /dev/null);
-
-        [[ $? -ne 0 ]] && _print -c "Missing required package '%s'" "${package}" && missing+=1;
+    for package in "${@}"; do
+        [[ $(command -v "$1" &> /dev/null) -ne 0 ]] && _print -c "Missing required package '%s'" "${package}" && missing+=1;
     done
 
     [[ ${missing} -ne 0 ]] && exit 1;
@@ -173,7 +178,7 @@ function _ask() {
 
     printf -v question "%s [%s]: " "${1}" "${options}";
 
-    read -p "${question}" response </dev/tty;
+    read -r -p "${question}" response </dev/tty;
 
     case "${response,,}" in
         "y"|"yes")
@@ -194,19 +199,16 @@ function _share_directory {
     local real_path
 
     if _ask "Share your local ${directory} directory?" "y"; then
-        real_path=$(realpath "${path}");
-
-        if [[ ${?} -ne 0 ]]; then
+        if ! real_path=$(realpath "${path}"); then
             _print -w "Unable to determine path of ${directory} directory";
 
             real_path=;
 
             if _ask "Locate ${directory} directory yourself?" "y"; then
                 while [[ -z "${real_path}" ]]; do
-                    read -e -p "${directory} directory: " path </dev/tty;
-                    real_path="$(realpath "${path}")";
+                    read -e -r -p "${directory} directory: " path </dev/tty;
 
-                    if [[ ${?} -ne 0 ]]; then
+                    if ! real_path="$(realpath "${path}")"; then
                         _print -w "Unable to resolve path of '%s'" "${path}";
 
                         real_path=;
@@ -220,6 +222,30 @@ function _share_directory {
 
     echo "${real_path}";
 }
+
+function _verify_env {
+    [[ -f "${OWN_DIRECTORY}/.env" ]] && return 0;
+
+    _print -w "No .env present in '%s'" "${OWN_DIRECTORY}";
+
+    if _ask "Enter setup?" "y"; then
+        _setup;
+
+        [[ ! ${?} ]] && _print -c "Setup failed";
+    fi
+
+    if [[ ! -f "${OWN_DIRECTORY}/.env" ]]; then
+        _print -c "Unable to continue without a .env file";
+
+        exit 1;
+    fi
+}
+
+function _clean_logs() {
+    find "${OWN_DIRECTORY}/logs" -type f \( ! -name .gitkeep \) -print0 | xargs -0 rm -vf;
+}
+
+################################################################################
 
 function _setup() {
     local input_file_stop=${IFS};
@@ -237,7 +263,7 @@ function _setup() {
         choice=;
 
         while [[ -z "${choice}" ]]; do
-            read -e -p "Name: " choice </dev/tty;
+            read -e -r -p "Name: " choice </dev/tty;
         done
 
         instance_name="${choice}-";
@@ -277,14 +303,14 @@ function _setup() {
 
             [[ "${environment##*/}" != "host" ]] && printf "  0) none\n"
 
-            for (( i=0; i<${num_choices}; i++ )); do
-                printf "  %s) %s" "$(( $i + 1 ))" "${choices[${i}]%.*}";
-                [[ "${current}" == "${choices[${i}]}" ]] && printf " -> %bcurrent%b" "\e[1;32m" "\e[m";
+            for (( i=0; i<num_choices; i++ )); do
+                printf "  %s) %s" "$(( i + 1 ))" "${choices[${i}]%.*}";
+                [[ "${current}" == "${choices[${i}]}" ]] && printf " -> %b%s%b" "\e[1;32m" "current" "\e[m";
                 printf "\n";
             done
 
             printf "\n";
-            read -p " > " choice </dev/tty;
+            read -r -p " > " choice </dev/tty;
 
             choice=$((choice - 1));
 
@@ -312,7 +338,7 @@ function _setup() {
 
             _print -v "symlinking '%s' to '%s'" "${environment}/${choices[${choice}]}" "${environment}/current";
 
-            if ! $(ln -fnrs "${environment}/${choices[${choice}]}" "${environment}/current"); then
+            if ! ln -fnrs "${environment}/${choices[${choice}]}" "${environment}/current"; then
                 _print -c "Failed to set %s as the current %s environment" "${choices[${choice}]}" "${environment##*/}";
 
                 return 1;
@@ -325,7 +351,9 @@ function _setup() {
 
             payload+=("################################################################################");
             payload+=("# ${instance_name}${environment##*/} (${current%.*})");
-            payload+=($(IFS=$'\n'; cat "${environment}/current"));
+
+            mapfile -t -O "${#payload[@]}" payload < <(cat "${environment}/current");
+
             payload+=("");
 
             compose_file="${OWN_DIRECTORY}/containers/${environment##*/}/compose.yml";
@@ -339,19 +367,18 @@ function _setup() {
         fi
     done
 
-    if [[ ! -z "${payload[@]}" ]]; then
+    if [[ -n "${payload[*]}" ]]; then
         payload+=("################################################################################");
         payload+=("# Global config");
         payload+=("INSTANCE_NAME=${instance_name}");
-        payload+=("USER_ID=$(id -u ${USER})");
-        payload+=("GROUP_ID=$(id -g ${USER})");
+        payload+=("USER_ID=$(id -u "${USER}")");
+        payload+=("GROUP_ID=$(id -g "${USER}")");
         choice=;
 
         while [[ -z "${choice}" ]]; do
-            read -e -p "Host data directory: " choice </dev/tty;
-            choice="$(realpath "${choice}")";
+            read -e -r -p "Host data directory: " choice </dev/tty;
 
-            if [[ ${?} -ne 0 ]]; then
+            if ! choice="$(realpath "${choice}")"; then
                 _print -w "Unable to resolve path of '%s'" "${choice}";
 
                 choice=;
@@ -363,10 +390,10 @@ function _setup() {
         payload+=("DATA_DIR=${choice}");
 
         choice=$(_share_directory "SSH" "${HOME}/.ssh");
-        [[ ! -z "${choice}" ]] && payload+=("USER_SSH_DIR=${choice}");
+        [[ -n "${choice}" ]] && payload+=("USER_SSH_DIR=${choice}");
 
         choice=$(_share_directory "cache" "${HOME}/.cache");
-        [[ ! -z "${choice}" ]] && payload+=("USER_CACHE_DIR=${choice}");
+        [[ -n "${choice}" ]] && payload+=("USER_CACHE_DIR=${choice}");
     fi
 
     _print -v -s "building environment file...";
@@ -402,24 +429,6 @@ function _env {
     return 0;
 }
 
-function _verify_env {
-    [[ -f "${OWN_DIRECTORY}/.env" ]] && return 0;
-
-    _print -w "No .env present in '%s'" "${OWN_DIRECTORY}";
-
-    if _ask "Enter setup?" "y"; then
-        _setup;
-
-        [[ ! ${?} ]] && _print -c "Setup failed";
-    fi
-
-    if [[ ! -f "${OWN_DIRECTORY}/.env" ]]; then
-        _print -c "Unable to continue without a .env file";
-
-        exit 1;
-    fi
-}
-
 function _up {
     local data_path;
     local www_path;
@@ -437,12 +446,10 @@ function _up {
 
     _print -i "Docker image built successfully";
 
-    docker-compose up -d;
-
-    if [[ ${?} -eq 0 ]]; then
+    if docker-compose up -d; then
         PIPE_SEVERITY="-c";
 
-        while read data_path www_path; do
+        while read -r data_path www_path; do
             [[ -z "${data_path}" ]] || [[ -z "${www_path}" ]] && continue;
 
             _print -v "exec data2www '%s' '%s'" "${data_path}" "${www_path}";
@@ -490,7 +497,7 @@ function _command() {
 
     PIPE_SEVERITY="-w";
 
-    docker-compose exec --user "${user}" "${container}" ${@:3} 2> >(_print_pipe);
+    docker-compose exec --user "${user}" "${container}" "${@:3}" 2> >(_print_pipe);
 
     return 0;
 }
@@ -502,10 +509,6 @@ function _enter {
     _command "${container}" "${user}" bash -l;
 
     return ${?};
-}
-
-function _clean_logs() {
-    find "${OWN_DIRECTORY}/logs" -type f \( ! -name .gitkeep \) -print0 | xargs -0 rm -vf;
 }
 
 function _down {
@@ -530,7 +533,7 @@ function main() {
     local status=127;
 
     _check_dependencies "docker" "docker-compose";
-    _parse_options ${@};
+    _parse_options "${@}";
 
     _print -v "SELF=%s" "${SELF}";
     _print -v "RESTORE=%s" "${RESTORE}";
@@ -563,12 +566,12 @@ function main() {
             status=${?};
             ;;
         "command")
-            _command ${ARGV[@]:2};
+            _command "${ARGV[@]:2}";
 
             status=${?};
             ;;
         "enter")
-            _enter ${ARGV[@]:2};
+            _enter "${ARGV[@]:2}";
 
             status=${?};
             ;;
@@ -592,4 +595,6 @@ function main() {
     return ${status};
 }
 
-main ${@};
+################################################################################
+
+main "${@}";
