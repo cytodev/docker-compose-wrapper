@@ -7,6 +7,7 @@
 #|
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] init
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] setup
+#|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] create
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] env
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] up
 #|    {e:1;39m}{SELF}{e:m} [{e:32m}<options>{e:m}] [{e:37m}--{e:m}] list
@@ -24,6 +25,7 @@
 #| {e:3;33m}Operations:{e:m}
 #|    {e:34m}init{e:m}      Initializes a {SELF} project (similar to git init)
 #|    {e:34m}setup{e:m}     Enters setup mode to build the .env file
+#|    {e:34m}create{e:m}    Creates the basic files required to set up a container
 #|    {e:34m}env{e:m}       Displays .env files in use by the defined containers
 #|    {e:34m}up{e:m}        Builds and starts the defined containers
 #|    {e:34m}list{e:m}      Lists all containers
@@ -313,6 +315,105 @@ function _init {
 
         return 1;
     fi
+}
+
+function _create {
+    local container_name;
+    local container_from_name;
+    local container_from_version;
+    local working_dir;
+
+    while [[ -z "${container_name}" ]]; do
+        read -e -r -p "Container name: " container_name </dev/tty;
+    done
+
+    if [[ -d "${OWN_DIRECTORY}/containers/${container_name}" ]]; then
+        if ! _ask "${container_name} already exists, overwrite?" "n"; then
+            _create;
+
+            return ${?};
+        fi
+    fi
+
+    while [[ -z "${container_from_name}" ]]; do
+        read -e -r -p "From container name: " container_from_name </dev/tty;
+    done
+
+    while [[ -z "${container_from_version}" ]]; do
+        read -e -r -p "From container version: " container_from_version </dev/tty;
+    done
+
+    while [[ -z "${working_dir}" ]]; do
+        read -e -r -p "Working directory: " working_dir </dev/tty;
+    done
+
+    if ! _ask "Accept configuration?" "y"; then
+        if ! _ask "Retry configuration?" "y"; then
+            return 1;
+        fi
+
+        _create;
+
+        return ${?};
+    fi
+
+    mkdir -p "${OWN_DIRECTORY}/containers/${container_name}";
+    mkdir -p "${OWN_DIRECTORY}/containers/${container_name}/data";
+    touch "${OWN_DIRECTORY}/containers/${container_name}/data/.gitkeep";
+    mkdir -p "${OWN_DIRECTORY}/env/${container_name}";
+
+    cat <<EOF > "${OWN_DIRECTORY}/containers/${container_name}/compose.yml";
+container-${container_name}:
+  image: container:${container_name}\${${container_from_name^^}_VERSION}
+  container_name: ${container_name}\${${container_from_name^^}_VERSION}
+  hostname: ${container_name}
+  restart: unless-stopped
+  working_dir: ${working_dir}
+  network_mode: host
+  build:
+    context: ./containers/${container_name}/
+    args:
+      - ARG_USER_ID=\${USER_ID}
+      - ARG_GROUP_ID=\${GROUP_ID}
+      - ARG_${container_from_name^^}_VERSION=\${${container_from_name^^}_VERSION:-latest}
+  volumes: *host-volumes
+  depends_on:
+    - container-host
+EOF
+
+    cat <<EOF > "${OWN_DIRECTORY}/containers/${container_name}/Dockerfile";
+ARG ARG_${container_from_name^^}_VERSION=\${ARG_${container_from_name^^}_VERSION}
+FROM ${container_from_name}:\${ARG_${container_from_name^^}_VERSION}
+
+# copy specific overwrites from container data
+COPY containers/${container_from_name}/data /
+
+# this is the only place we can move over the hosts file
+COPY shared/etc/hosts /etc/hosts
+
+# initially copy the shared directory but mount it afterwards
+COPY shared /shared
+
+# set up shared content links
+RUN /shared/usr/local/bin/shared-content-sync
+
+# user creation
+ARG ARG_USER_ID=\${ARG_USER_ID}
+ARG ARG_GROUP_ID=\${ARG_GROUP_ID}
+RUN if ! getent group \${ARG_GROUP_ID} &> /dev/null; then groupadd -g \${ARG_GROUP_ID} development; fi \\
+ && useradd -u \${ARG_USER_ID} -g \${ARG_GROUP_ID} -G 100,27,33 -m -d /home/development -s /bin/bash development \\
+ && echo 'development:development' | chpasswd
+
+USER \${ARG_USER_ID}:\${ARG_GROUP_ID}
+EOF
+
+    _print -i "Wrote container configuration to %s" "${OWN_DIRECTORY}/containers/${container_name}";
+
+    cat <<EOF > "${OWN_DIRECTORY}/env/${container_name}/${container_from_version}.env";
+${container_from_name^^}_VERSION=${container_from_version}
+EOF
+
+    _print -i "Wrote container environment to %s" "${OWN_DIRECTORY}/env/${container_name}/${container_from_version}.env";
 }
 
 function _setup {
@@ -620,6 +721,11 @@ function main {
     case "${ARGV[1]}" in
         "init")
             _init;
+
+            status=${?};
+            ;;
+        "create")
+            _create;
 
             status=${?};
             ;;
