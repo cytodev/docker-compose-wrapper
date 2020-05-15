@@ -335,6 +335,8 @@ function _setup {
         done
 
         instance_name="${choice}-";
+
+        _print -v "INSTANCE_NAME=%s" "${choice}";
     fi
 
     printf "version: \"%s\"\n\nservices:" "${DOCKER_COMPOSE_VERSION}" > "${OWN_DIRECTORY}/docker-compose.yml";
@@ -444,24 +446,33 @@ function _setup {
         choice=;
 
         while [[ -z "${choice}" ]]; do
+            cd "${RESTORE}" || exit 1;
+
             read -e -r -p "Host data directory: " choice </dev/tty;
 
-            if ! choice="$(realpath "${choice}")"; then
+            choice="$(realpath "${choice}")";
+
+            if [[ ! -d "${choice}" ]]; then
                 _print -w "Unable to resolve path of '%s'" "${choice}";
 
                 choice=;
 
                 continue;
             fi
+
+            cd "${OWN_DIRECTORY}" || exit 1;
         done
 
+        _print -v "DATA_DIR=%s" "${choice}";
         payload+=("DATA_DIR=${choice}");
 
         choice=$(_share_directory "SSH" "${HOME}/.ssh");
         [[ -n "${choice}" ]] && payload+=("USER_SSH_DIR=${choice}");
+        _print -v "USER_SSH_DIR=%s" "${choice}";
 
         choice=$(_share_directory "cache" "${HOME}/.cache");
         [[ -n "${choice}" ]] && payload+=("USER_CACHE_DIR=${choice}");
+        _print -v "USER_CACHE_DIR=%s" "${choice}";
     fi
 
     _print -v -s "building environment file...";
