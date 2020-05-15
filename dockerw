@@ -774,6 +774,12 @@ function main {
 
             status=${?};
             ;;
+        *)
+            _print -c "Invalid operation '%s'" "${ARGV[1]}";
+            _print -i "see '%s --help' for a list of available operations" "${SELF}";
+
+            status=1;
+            ;;
     esac
 
     return ${status};
