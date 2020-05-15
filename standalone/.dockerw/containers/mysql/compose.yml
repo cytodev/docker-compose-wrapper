@@ -1,0 +1,23 @@
+container-mysql:
+  image: container:mysql${MYSQL_VERSION}
+  container_name: ${INSTANCE_NAME}mysql${MYSQL_VERSION}
+  hostname: mysql
+  restart: unless-stopped
+  working_dir: /var/lib/mysql
+  network_mode: host
+  environment:
+    MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+  ports:
+    - "3306:3306"
+  build:
+    context: ./
+    dockerfile: ./containers/mysql/Dockerfile
+    args:
+      - ARG_USER_ID=${USER_ID}
+      - ARG_GROUP_ID=${GROUP_ID}
+      - ARG_MYSQL_VERSION=${MYSQL_VERSION:-latest}
+  volumes:
+    # We can support persistent storage at the cost of losing our host volumes
+    - ./database/mysql:/var/lib/mysql
+  depends_on:
+    - container-host
