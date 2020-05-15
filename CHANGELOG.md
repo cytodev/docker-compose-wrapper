@@ -13,34 +13,46 @@ Changes are documented in the following order:
  5. Fixed
  6. Security
 
-## [Unreleased](https://github.com/CytoDev/docker-compose-wrapper/compare/master...dev)
+## [Unreleased](https://github.com/cytodev/docker-compose-wrapper/compare/master...dev)
+
+## [1.2.0] - 2020-05-15
+### Added
+ - add `dockerw create` command
+ - add error message when an unsupported operation is requested
+
+### Removed
+ - removed redundant call to a container specific script
+
+### Fixed
+ - fixed directory path when selecting host directory in standalone installations
 
 ## [1.1.0] - 2020-05-14
 ### Added
  - add Instance naming support
  - add base Ubuntu releases to environments
  - add default host Dockerfile
- - add `gpg` to standard host release
+ - add `gpg` to standard host container
  - add `dockerw logs` command
  - add `shared-content-sync` to default shared directory
  - add shared directories
  - add standalone functionality
 
 ### Changed
- - Default `.bashrc` file
- - Moved shared content to shared directory
+ - updated default `.bashrc` file
+ - moved shared content to shared directory
 
 ### Removed
- - `dockerw ssh` command in favour of `dockerw enter <container>`
- - `dockerw composer` command because it is too specific
+ - removed `dockerw ssh` command in favour of `dockerw enter <container>`
+ - removed `dockerw composer` command because it is too specific
 
 ### Fixed
- - Fixed symbolic link overriding issues in `dockerw setup`
- - Fixed existential crisis when executed outside of own directory
- - Fixed function calls calling subshells
+ - fixed symbolic link overriding issues in `dockerw setup`
+ - fixed existential crisis when executed outside of own directory
+ - fixed function calls calling subshells
 
 ## [1.0.0] - 2019-11-05
- - Initial release
+ - initial release
 
-[1.1.0]: https://github.com/CytoDev/docker-compose-wrapper/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/CytoDev/docker-compose-wrapper/compare/e61315f...v1.0.0
+[1.2.0]: https://github.com/cytodev/docker-compose-wrapper/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/cytodev/docker-compose-wrapper/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/cytodev/docker-compose-wrapper/compare/e61315f...v1.0.0
