@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+set -e;
+
+function _enable_sites {
+    local needs_reload=0;
+    local host;
+
+    for host in /etc/apache2/sites-available/*; do
+        host=${host##*/};
+
+        if ! ls /etc/apache2/sites-enabled | grep "${host}" &> /dev/null; then
+            echo "Enabling site config ${host%.*}";
+            a2ensite "${host%.*}" 1> /dev/null;
+
+            needs_reload=1;
+        fi
+    done
+
+    [[ ${needs_reload} -eq 1 ]] && service apache2 reload && return ${?};
+
+    return 0;
+}
+
+function _enable_modules {
+    local needs_restart=0;
+    local module;
+
+    while read module; do
+        if ! ls /etc/apache2/mods-enabled | grep "${module}" &> /dev/null; then
+            a2enmod "${module}";
+
+            needs_restart=1;
+        fi
+    done < /etc/apache2/modules.list
+
+    [[ ${needs_restart} -eq 1 ]] && service apache2 restart && return ${?};
+
+    return 0;
+}
+
+if _enable_sites; then
+    if _enable_modules; then
+        echo "Apache conf and mods reloaded" 2> /dev/sdout
+    fi
+fi
+
+exit 0;

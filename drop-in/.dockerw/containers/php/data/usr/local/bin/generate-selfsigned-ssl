@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -e;
+
+function _ensure_clean {
+    local file="${1}";
+
+    if [[ -f "${file}" ]]; then
+        echo "[WARNING] ${file} already exists";
+
+        rm -v "${file}";
+    fi
+}
+
+function _ensure_secure {
+    local file="${1}";
+
+    if [[ ! -f "${file}" ]]; then
+        echo "ERROR: ${file} does not exist";
+
+        return 1;
+
+    fi
+
+    chmod 600 "${file}";
+
+    return ${?};
+}
+
+KEY_FILE="/etc/ssl/private/dockerw-selfsigned.key";
+CRT_FILE="/etc/ssl/certs/dockerw-selfsigned.crt";
+
+_ensure_clean "${KEY_FILE}";
+_ensure_clean "${CRT_FILE}";
+
+openssl req -new \
+            -newkey ec \
+            -pkeyopt ec_paramgen_curve:prime256v1 \
+            -days 365 \
+            -nodes -x509 \
+            -subj "/C=/ST=/L=/O=docker compose wrapper/CN=127.0.0.1" \
+            -keyout "${KEY_FILE}" \
+            -out "${CRT_FILE}";
+
+_ensure_secure "${KEY_FILE}";
+_ensure_secure "${CRT_FILE}";

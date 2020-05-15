@@ -1,0 +1,7 @@
+.dockerw/database/*
+.dockerw/logs/*
+
+.dockerw/.env
+.dockerw/docker-compose.yml
+
+!**/.gitkeep

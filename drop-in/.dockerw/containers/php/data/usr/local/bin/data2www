@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -e;
+
+function _link {
+    local link_target=$(realpath "/mnt/data/${1}");
+    local link_name="/var/www/${2}";
+
+    if [[ -z "${link_target}" ]]; then
+        echo "Target '/mnt/data/${1}' does not exist (yet)" &> /dev/stderr;
+
+        return 0;
+    fi
+
+    if [[ -L $(realpath "${link_name}") ]]; then
+        if [[ "$(realpath "${link_name}")" == "${link_target}" ]]; then
+            return 0;
+        fi
+
+        if ! rm "${link_name}"; then
+            echo "Could not remove link '${link_name}'" &> /dev/stderr;
+
+            return 1;
+        fi
+    fi
+
+    if ! ln -s "${link_target}" "${link_name}" 2> /dev/stderr; then
+        echo "Unable to link '${link_target}' to '${link_name}'" &> /dev/stderr;
+
+        return 1;
+    fi
+}
+
+function main {
+    while true; do
+        while read -r data_path www_path; do
+            _link "${data_path}" "${www_path}"
+        done < <(cat /data2www.cfg);
+
+        sleep 1;
+    done
+}
+
+main;

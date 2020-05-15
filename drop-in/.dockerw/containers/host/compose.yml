@@ -1,0 +1,30 @@
+container-host:
+  image: container:host
+  container_name: ${INSTANCE_NAME}docker-host
+  hostname: docker-host
+  restart: unless-stopped
+  build:
+    context: ./
+    dockerfile: ./containers/host/Dockerfile
+    args:
+      - ARG_USER_ID=${USER_ID}
+      - ARG_GROUP_ID=${GROUP_ID}
+      - ARG_UBUNTU_VERSION=${UBUNTU_VERSION}
+      - ARG_HOST_DEPENDENCIES=${HOST_DEPENDENCIES}
+  volumes: &host-volumes
+    - ./config/hosts:/etc/hosts
+    - type: bind
+      source: ${DATA_DIR}
+      target: /mnt/data
+    - type: bind
+      source: ${USER_SSH_DIR:-/tmp}
+      target: /home/development/.ssh
+    - type: bind
+      source: ${USER_CACHE_DIR:-/tmp}
+      target: /home/development/.cache
+    - type: bind
+      source: ./logs
+      target: /var/log
+    - type: bind
+      source: ./shared
+      target: /shared

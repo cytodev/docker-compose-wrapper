@@ -1,0 +1,12 @@
+.AppleDouble
+.DS_Store
+.idea
+.LSOverride
+.env
+docker-compose.yml
+
+env/*/current
+logs/*
+
+# keep directories with a .gitkeep file
+!**/.gitkeep

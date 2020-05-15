@@ -1,0 +1,21 @@
+container-php:
+  image: container:php${PHP_VERSION}
+  container_name: ${INSTANCE_NAME}php${PHP_VERSION}
+  hostname: php
+  restart: unless-stopped
+  working_dir: /var/www
+  network_mode: host
+  ports:
+    - "80:80"
+    - "443:443"
+  build:
+    context: ./
+    dockerfile: ./containers/php/Dockerfile
+    args:
+      - ARG_USER_ID=${USER_ID}
+      - ARG_GROUP_ID=${GROUP_ID}
+      - ARG_PHP_VERSION=${PHP_VERSION:-latest}
+      - ARG_PHP_MODULES=${PHP_MODULES:-}
+  volumes: *host-volumes
+  depends_on:
+    - container-host
