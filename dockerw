@@ -509,9 +509,6 @@ function _env {
 }
 
 function _up {
-    local data_path;
-    local www_path;
-
     if ! _verify_env; then
         return 1;
     fi
@@ -529,18 +526,8 @@ function _up {
     _print -i "Docker image built successfully";
 
     if docker-compose up -d; then
-        PIPE_SEVERITY="-c";
-
-        while read -r data_path www_path; do
-            [[ -z "${data_path}" ]] || [[ -z "${www_path}" ]] && continue;
-
-            _print -v "exec data2www '%s' '%s'" "${data_path}" "${www_path}";
-
-            docker-compose exec -T container-php data2www "${data_path}" "${www_path}" 2> >(_print_pipe) & disown;
-        done < "${OWN_DIRECTORY}/config/data2www.cfg"
+        [[ $(_get_option "auto_enter") -eq 0 ]] && _enter "host";
     fi
-
-    [[ $(_get_option "auto_enter") -eq 0 ]] && _enter "host";
 }
 
 function _list {
