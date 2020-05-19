@@ -365,17 +365,19 @@ function _create {
     cat <<EOF > "${OWN_DIRECTORY}/containers/${container_name}/compose.yml";
 container-${container_name}:
   image: container:${container_name}\${${container_from_name^^}_VERSION}
-  container_name: ${container_name}\${${container_from_name^^}_VERSION}
+  container_name: \${INSTANCE_NAME}${container_name}\${${container_from_name^^}_VERSION}
   hostname: ${container_name}
   restart: unless-stopped
   working_dir: ${working_dir}
   network_mode: host
   build:
-    context: ./containers/${container_name}/
     args:
       - ARG_USER_ID=\${USER_ID}
       - ARG_GROUP_ID=\${GROUP_ID}
       - ARG_${container_from_name^^}_VERSION=\${${container_from_name^^}_VERSION:-latest}
+    context: ./
+    dockerfile: ./containers/${container_name}/Dockerfile
+    network: host
   volumes: *host-volumes
   depends_on:
     - container-host
@@ -386,7 +388,7 @@ ARG ARG_${container_from_name^^}_VERSION=\${ARG_${container_from_name^^}_VERSION
 FROM ${container_from_name}:\${ARG_${container_from_name^^}_VERSION}
 
 # copy specific overwrites from container data
-COPY containers/${container_from_name}/data /
+COPY containers/${container_name}/data /
 
 # this is the only place we can move over the hosts file
 COPY shared/etc/hosts /etc/hosts
