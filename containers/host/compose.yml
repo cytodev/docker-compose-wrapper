@@ -23,6 +23,9 @@ container-host:
       source: ${USER_CACHE_DIR:-/tmp}
       target: /home/development/.cache
     - type: bind
+      source: ${USER_HIST_FILE:-/tmp/.dockerw_history}
+      target: /home/development/.bash_history
+    - type: bind
       source: ./logs
       target: /var/log
     - type: bind

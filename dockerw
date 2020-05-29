@@ -261,6 +261,36 @@ function _share_directory {
     echo "${real_path}";
 }
 
+function _share_file {
+    local file="${1}";
+    local path="${2}";
+    local real_path
+
+    if _ask "Share your local ${file} file?" "y"; then
+        if ! real_path=$(realpath "${path}"); then
+            _print -w "Unable to determine path of ${file} file";
+
+            real_path=;
+
+            if _ask "Locate ${file} file yourself?" "y"; then
+                while [[ -z "${real_path}" ]]; do
+                    read -e -r -p "${file} file: " path </dev/tty;
+
+                    if ! real_path="$(realpath "${path}")"; then
+                        _print -w "Unable to resolve path of '%s'" "${path}";
+
+                        real_path=;
+
+                        continue;
+                    fi
+                done
+            fi
+        fi
+    fi
+
+    echo "${real_path}";
+}
+
 function _verify_env {
     [[ -f "${OWN_DIRECTORY}/.env" ]] && return 0;
 
@@ -576,6 +606,10 @@ function _setup {
         choice=$(_share_directory "cache" "${HOME}/.cache");
         [[ -n "${choice}" ]] && payload+=("USER_CACHE_DIR=${choice}");
         _print -v "USER_CACHE_DIR=%s" "${choice}";
+
+        choice=$(_share_file ".bash_history" "${HOME}/.bash_history");
+        [[ -n "${choice}" ]] && payload+=("USER_HIST_FILE=${choice}");
+        _print -v "USER_HIST_FILE=%s" "${choice}";
     fi
 
     _print -v -s "building environment file...";
