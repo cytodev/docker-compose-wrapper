@@ -4,7 +4,7 @@ set -e;
 
 SHARED_PATH="/shared";
 
-function _link() {
+function _link {
     local filepath;
     local filename;
     local dirname;
@@ -22,14 +22,13 @@ function _link() {
     done < <(find "${SHARED_PATH}" -type f);
 }
 
-function main() {
+function main {
+    _link;
+
     if [[ "${1}" == "--loop" ]]; then
-        while true; do
-            _link;
-            sleep 30;
-        done
-    else
-        _link;
+        ${0} "--loop" & disown;
+
+        return ${?};
     fi
 }
 

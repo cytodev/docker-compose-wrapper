@@ -14,7 +14,7 @@ COPY shared /shared
 RUN mkdir -p /mnt/data
 
 # set up shared content links
-RUN /shared/usr/local/bin/shared-content-sync
+RUN /shared/usr/local/bin/shared-content-sync --loop
 
 # user creation
 ARG ARG_USER_ID=${ARG_USER_ID}
@@ -52,4 +52,4 @@ RUN apt-get update \
  && apt-get install -y ${ARG_HOST_DEPENDENCIES}
 
 # endless loop to keep container alive
-CMD ["shared-content-sync", "--loop"]
+CMD ["tail", "-f", "/dev/null"]
