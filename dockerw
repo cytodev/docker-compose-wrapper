@@ -599,17 +599,21 @@ function _setup {
         _print -v "DATA_DIR=%s" "${choice}";
         payload+=("DATA_DIR=${choice}");
 
-        choice=$(_share_directory "SSH" "${HOME}/.ssh");
-        [[ -n "${choice}" ]] && payload+=("USER_SSH_DIR=${choice}");
-        _print -v "USER_SSH_DIR=%s" "${choice}";
-
         choice=$(_share_directory "cache" "${HOME}/.cache");
         [[ -n "${choice}" ]] && payload+=("USER_CACHE_DIR=${choice}");
         _print -v "USER_CACHE_DIR=%s" "${choice}";
 
+        choice=$(_share_directory "config" "${HOME}/.config");
+        [[ -n "${choice}" ]] && payload+=("USER_CONFIG_DIR=${choice}");
+        _print -v "USER_CONFIG_DIR=%s" "${choice}";
+
         choice=$(_share_file ".bash_history" "${HOME}/.bash_history");
         [[ -n "${choice}" ]] && payload+=("USER_HIST_FILE=${choice}");
         _print -v "USER_HIST_FILE=%s" "${choice}";
+
+        choice=$(_share_directory "SSH" "${HOME}/.ssh");
+        [[ -n "${choice}" ]] && payload+=("USER_SSH_DIR=${choice}");
+        _print -v "USER_SSH_DIR=%s" "${choice}";
     fi
 
     _print -v -s "building environment file...";
