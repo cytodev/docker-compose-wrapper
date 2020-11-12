@@ -23,12 +23,6 @@ volumes:
       type: none
       device: ${USER_SSH_DIR:-/tmp}
       o: bind
-  history_file:
-    driver: local
-    driver_opts:
-      type: none
-      device: ${USER_HIST_FILE:-/tmp/.dockerw_history}
-      o: bind
   logs:
     driver: local
     driver_opts:

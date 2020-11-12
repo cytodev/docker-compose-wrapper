@@ -16,6 +16,7 @@ container-${container_name}:
   volumes:
     - /etc/localtime:/etc/localtime:ro
     - /etc/hosts:/etc/hosts:ro
+    - \${USER_HIST_FILE:-/tmp/.dockerw_history}:/home/development/.bash_history
     - data:/mnt/data
     - cache:/home/development/.cache
     - config:/home/development/.config
