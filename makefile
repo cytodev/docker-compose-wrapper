@@ -10,7 +10,7 @@ install: uninstall
 	mkdir -p ${BIN_DIR}
 	install -m 755 ${NAME} ${BIN_DIR}/${NAME}
 	mkdir -p ${SHARE_DIR}
-	cp -r {containers,env,logs,shared} ${SHARE_DIR}
+	cp -r {containers,env,logs,shared,templates} ${SHARE_DIR}
 	find ${SHARE_DIR} -type d -exec chmod 755 {} +
 	find ${SHARE_DIR} -type f -exec chmod 644 {} +
 	find ${SHARE_DIR} -type f -executable -exec chmod +x {} +

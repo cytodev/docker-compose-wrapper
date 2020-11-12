@@ -392,52 +392,15 @@ function _create {
     touch "${OWN_DIRECTORY}/containers/${container_name}/data/.gitkeep";
     mkdir -p "${OWN_DIRECTORY}/env/${container_name}";
 
-    cat <<EOF > "${OWN_DIRECTORY}/containers/${container_name}/compose.yml";
-container-${container_name}:
-  image: container:${container_name}\${${container_from_name^^}_VERSION}
-  container_name: \${INSTANCE_NAME}${container_name}\${${container_from_name^^}_VERSION}
-  hostname: ${container_name}
-  restart: unless-stopped
-  working_dir: ${working_dir}
-  network_mode: host
-  build:
-    args:
-      - ARG_USER_ID=\${USER_ID}
-      - ARG_GROUP_ID=\${GROUP_ID}
-      - ARG_${container_from_name^^}_VERSION=\${${container_from_name^^}_VERSION:-latest}
-    context: ./
-    dockerfile: ./containers/${container_name}/Dockerfile
-    network: host
-  volumes: *host-volumes
-  depends_on:
-    - container-host
+    eval "cat <<EOF
+$(< "${OWN_DIRECTORY}/templates/compose.yml")
 EOF
+" 1> "${OWN_DIRECTORY}/containers/${container_name}/compose.yml";
 
-    cat <<EOF > "${OWN_DIRECTORY}/containers/${container_name}/Dockerfile";
-ARG ARG_${container_from_name^^}_VERSION=\${ARG_${container_from_name^^}_VERSION}
-FROM ${container_from_name}:\${ARG_${container_from_name^^}_VERSION}
-
-# copy specific overwrites from container data
-COPY containers/${container_name}/data /
-
-# this is the only place we can move over the hosts file
-COPY shared/etc/hosts /etc/hosts
-
-# initially copy the shared directory but mount it afterwards
-COPY shared /shared
-
-# set up shared content links
-RUN /shared/usr/local/bin/shared-content-sync
-
-# user creation
-ARG ARG_USER_ID=\${ARG_USER_ID}
-ARG ARG_GROUP_ID=\${ARG_GROUP_ID}
-RUN if ! getent group \${ARG_GROUP_ID} &> /dev/null; then groupadd -g \${ARG_GROUP_ID} development; fi \\
- && useradd -u \${ARG_USER_ID} -g \${ARG_GROUP_ID} -G 100,27,33 -m -d /home/development -s /bin/bash development \\
- && echo 'development:development' | chpasswd
-
-USER \${ARG_USER_ID}:\${ARG_GROUP_ID}
+    eval "cat <<EOF
+$(< "${OWN_DIRECTORY}/templates/Dockerfile")
 EOF
+" 1> "${OWN_DIRECTORY}/containers/${container_name}/Dockerfile";
 
     _print -i "Wrote container configuration to %s" "${OWN_DIRECTORY}/containers/${container_name}";
 
@@ -472,9 +435,7 @@ function _setup {
         _print -v "INSTANCE_NAME=%s" "${choice}";
     fi
 
-    printf "version: \"%s\"\n\n%s:\n" "${DOCKER_COMPOSE_VERSION}" "services" > "${OWN_DIRECTORY}/docker-compose.yml";
-
-    sed "s|^|  |" "${OWN_DIRECTORY}/containers/host/compose.yml" >> "${OWN_DIRECTORY}/docker-compose.yml";
+    printf "version: \"%s\"\n\n%s:" "${DOCKER_COMPOSE_VERSION}" "services" > "${OWN_DIRECTORY}/docker-compose.yml";
 
     IFS="#";
 
@@ -573,7 +534,7 @@ function _setup {
     done
 
     echo "" >> "${OWN_DIRECTORY}/docker-compose.yml";
-    cat "${OWN_DIRECTORY}/containers/host/volumes.yml" >> "${OWN_DIRECTORY}/docker-compose.yml";
+    cat "${OWN_DIRECTORY}/templates/volumes.yml" >> "${OWN_DIRECTORY}/docker-compose.yml";
 
     if [[ -n "${payload[*]}" ]]; then
         payload+=("################################################################################");

@@ -1,7 +1,8 @@
-FROM scratch
+ARG ARG_${container_from_name^^}_VERSION=\${ARG_${container_from_name^^}_VERSION}
+FROM ${container_from_name}:\${ARG_${container_from_name^^}_VERSION}
 
 # copy specific overwrites from container data
-COPY containers/host/data /
+COPY containers/${container_name}/data /
 
 # this is the only place we can move over the hosts file
 COPY shared/etc/hosts /etc/hosts
@@ -9,11 +10,8 @@ COPY shared/etc/hosts /etc/hosts
 # initially copy the shared directory but mount it afterwards
 COPY shared /shared
 
-# ensure the data mountpoint exists
-RUN mkdir -p /mnt/data
-
 # set up shared content links
-RUN /shared/usr/local/bin/shared-content-sync
+RUN /shared/usr/local/bin/shared-content-sync --loop
 
 # user creation
 ARG ARG_USER_ID=\${ARG_USER_ID}
@@ -23,6 +21,3 @@ RUN if ! getent group \${ARG_GROUP_ID} &> /dev/null; then groupadd -g \${ARG_GRO
  && echo 'development:development' | chpasswd
 
 USER \${ARG_USER_ID}:\${ARG_GROUP_ID}
-
-# endless loop to keep container alive
-CMD ["tail", "-f", "/dev/null"]
