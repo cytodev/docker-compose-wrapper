@@ -7,27 +7,13 @@ container-host:
     context: ./
     dockerfile: ./containers/host/Dockerfile
     network: host
-  volumes: &host-volumes
+  volumes:
     - /etc/localtime:/etc/localtime:ro
-    - ./config/hosts:/etc/hosts
-    - type: bind
-      source: ${DATA_DIR}
-      target: /mnt/data
-    - type: bind
-      source: ${USER_CACHE_DIR:-/tmp}
-      target: /home/development/.cache
-    - type: bind
-      source: ${USER_CONFIG_DIR:-/tmp}
-      target: /home/development/.config
-    - type: bind
-      source: ${USER_HIST_FILE:-/tmp/.dockerw_history}
-      target: /home/development/.bash_history
-    - type: bind
-      source: ${USER_SSH_DIR:-/tmp}
-      target: /home/development/.ssh
-    - type: bind
-      source: ./logs
-      target: /var/log
-    - type: bind
-      source: ./shared
-      target: /shared
+    - /etc/hosts:/etc/hosts:ro
+    - data:/mnt/data
+    - cache:/home/development/.cache
+    - config:/home/development/.config
+    - ssh:/home/development/.ssh
+    - history_file:/home/development/.bash_history
+    - logs:/var/log
+    - shared:/shared

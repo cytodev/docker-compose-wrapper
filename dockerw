@@ -566,11 +566,14 @@ function _setup {
             if [[ -f "${compose_file}" ]]; then
                 _print -v "appending %s to docker-compose.yml" "${compose_file}";
 
-                echo "" >> "${OWN_DIRECTORY}/docker-compose.yml"
+                echo "" >> "${OWN_DIRECTORY}/docker-compose.yml";
                 sed "s|^|  |" "${compose_file}" >> "${OWN_DIRECTORY}/docker-compose.yml";
             fi
         fi
     done
+
+    echo "" >> "${OWN_DIRECTORY}/docker-compose.yml";
+    cat "${OWN_DIRECTORY}/containers/host/volumes.yml" >> "${OWN_DIRECTORY}/docker-compose.yml";
 
     if [[ -n "${payload[*]}" ]]; then
         payload+=("################################################################################");

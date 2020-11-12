@@ -1,0 +1,43 @@
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${DATA_DIR}
+      o: bind
+  cache:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${USER_CACHE_DIR:-/tmp}
+      o: bind
+  config:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${USER_CONFIG_DIR:-/tmp}
+      o: bind
+  ssh:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${USER_SSH_DIR:-/tmp}
+      o: bind
+  history_file:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${USER_HIST_FILE:-/tmp/.dockerw_history}
+      o: bind
+  logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./logs
+      o: bind
+  shared:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./shared
+      o: bind
