@@ -132,9 +132,17 @@ HISTFILESIZE=;
 
 export HISTTIMEFORMAT="%Y-%m-%d %T → ";
 
+PROMPT_COMMAND="history -a;$PROMPT_COMMAND";
+
 ############################################################################ SSH
 # Start the SSH agent on every shell session
-[[ -x /usr/bin/ssh-agent ]] && eval "$(ssh-agent -s)";
+if [[ -x /usr/bin/ssh-agent ]]; then
+    export SSH_AUTH_SOCK=~/.ssh/ssh-agent.sock;
+
+    ssh-add -l &> /dev/null;
+
+    [[ $? -ge 2 ]] && ssh-agent -a "${SSH_AUTH_SOCK}" &> /dev/null
+fi
 
 ############################################################################ GPG
 export GPG_TTY=$(tty)

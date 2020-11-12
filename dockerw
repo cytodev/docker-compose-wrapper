@@ -472,7 +472,9 @@ function _setup {
         _print -v "INSTANCE_NAME=%s" "${choice}";
     fi
 
-    printf "version: \"%s\"\n\nservices:" "${DOCKER_COMPOSE_VERSION}" > "${OWN_DIRECTORY}/docker-compose.yml";
+    printf "version: \"%s\"\n\n%s:\n" "${DOCKER_COMPOSE_VERSION}" "services" > "${OWN_DIRECTORY}/docker-compose.yml";
+
+    sed "s|^|  |" "${OWN_DIRECTORY}/containers/host/compose.yml" >> "${OWN_DIRECTORY}/docker-compose.yml";
 
     IFS="#";
 

@@ -5,7 +5,7 @@
 alias qq='exit';
 
 alias ..='cd ../;';
-alias ll='ls -halF --group-directories-first';
+alias ll='ls -halFv --group-directories-first';
 alias la='ls -A';
 alias l='ls -CF';
 
