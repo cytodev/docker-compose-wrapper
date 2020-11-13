@@ -387,9 +387,9 @@ function _create {
         return ${?};
     fi
 
-    mkdir -p "${OWN_DIRECTORY}/containers/${container_name}";
-    mkdir -p "${OWN_DIRECTORY}/containers/${container_name}/data";
-    touch "${OWN_DIRECTORY}/containers/${container_name}/data/.gitkeep";
+    cp -r "${OWN_DIRECTORY}/templates/data" "${OWN_DIRECTORY}/containers/${container_name}/";
+    cp -r "${OWN_DIRECTORY}/templates/hooks" "${OWN_DIRECTORY}/containers/${container_name}/";
+
     mkdir -p "${OWN_DIRECTORY}/env/${container_name}";
 
     eval "cat <<EOF
@@ -615,6 +615,15 @@ function _env {
     return 0;
 }
 
+function _hook {
+    local hook_type="${1}";
+
+    for hook in "${OWN_DIRECTORY}/containers/"**"/hooks/${hook_type}.sh"; do
+        # shellcheck source=templates/hooks/${hook_type}.sh
+        . "${hook}" >(_print_pipe);
+    done
+}
+
 function _up {
     if ! _verify_env; then
         return 1;
@@ -624,6 +633,8 @@ function _up {
     _print -v "Project root: %s" "${PWD}";
     _print -i "This process might take a while, especially when this is the first build";
 
+    _hook "pre-build";
+
     if ! docker-compose build 2>&1 | sed "s/^/    /"; then
         _print -c "Build failed";
 
@@ -632,8 +643,13 @@ function _up {
 
     _print -i "Docker image built successfully";
 
+    _hook "post-build";
+    _hook "pre-up";
+
     if docker-compose up -d; then
-        [[ $(_get_option "auto_enter") -eq 0 ]] && _enter "host";
+        _hook "post-up";
+
+        [[ $(_get_option "auto_enter") -eq 0 ]] && _enter;
     fi
 }
 
@@ -682,6 +698,10 @@ function _enter {
     local container="${1}";
     local user="${2:-development}";
 
+    if [[ -z "${container}" ]]; then
+        read -e -r -p "Common Name (FQDN): " container </dev/tty;
+    fi
+
     _command "${container}" "${user}" bash -l;
 
     return ${?};
@@ -689,18 +709,28 @@ function _enter {
 
 function _down {
     _clean_logs;
+    _hook "pre-down";
 
-    docker-compose down --volumes;
+    if docker-compose down --volumes; then
+        _hook "post-down";
 
-    return ${?};
+        return ${?};
+    fi
+
+    return 0;
 }
 
 function _destroy {
     _clean_logs;
+    _hook "pre-destroy";
 
-    docker-compose down --rmi all --volumes --remove-orphans;
+    if docker-compose down --rmi all --volumes --remove-orphans; then
+        _hook "post-destroy";
 
-    return ${?};
+        return ${?};
+    fi
+
+    return 0;
 }
 
 ################################################################################

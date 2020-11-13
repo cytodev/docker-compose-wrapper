@@ -1,0 +1,9 @@
+database/**
+logs/**
+
+env/**/current
+
+.gitconfig
+*.key
+
+!**/.gitkeep
