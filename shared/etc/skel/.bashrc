@@ -22,7 +22,7 @@ shopt -s globstar
 
 ############################################################### HELPER FUNCTIONS
 
-function is_chroot() {
+function is_chroot {
     if [[ -n ${chroot:+$chroot} ]]; then
         printf "${chroot:+:$chroot}";
 
@@ -32,7 +32,7 @@ function is_chroot() {
     return 1;
 }
 
-function is_environment() {
+function is_environment {
     if [[ -n ${env:+$env} ]]; then
         printf "${env:+:$env}";
 
@@ -42,7 +42,7 @@ function is_environment() {
     return 1;
 }
 
-function is_screen() {
+function is_screen {
     [[ ! -x /usr/bin/screen ]] && return 127;
 
     if [[ -n "${STY}" ]]; then
@@ -54,7 +54,7 @@ function is_screen() {
     return 1;
 }
 
-function real_directory_path() {
+function real_directory_path {
     if [[ -d "${PWD}" ]]; then
         printf " %s" "$(realpath "${PWD}" | sed -e "s#^${HOME}#~#")";
     else
@@ -62,7 +62,7 @@ function real_directory_path() {
     fi
 }
 
-function current_git_branch() {
+function current_git_branch {
     [[ ! -x /usr/bin/git ]] && return 127;
 
     local branch;
@@ -81,7 +81,7 @@ function current_git_branch() {
     return 1;
 }
 
-function current_git_status() {
+function current_git_status {
     [[ ! -x /usr/bin/git ]] && return 127;
 
     local status;
