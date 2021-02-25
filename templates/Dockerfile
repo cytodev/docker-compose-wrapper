@@ -4,9 +4,6 @@ FROM ${container_from_name}:\${ARG_${container_from_name^^}_VERSION}
 # copy specific overwrites from container data
 COPY containers/${container_name}/data /
 
-# this is the only place we can move over the hosts file
-COPY shared/etc/hosts /etc/hosts
-
 # initially copy the shared directory but mount it afterwards
 COPY shared /shared
 
