@@ -617,8 +617,22 @@ function _env {
 
 function _hook {
     local hook_type="${1}";
+    local CONTAINER_NAME;
+    local CONTAINER_ENV;
+    local CONTAINER_VERSION;
 
     for hook in "${OWN_DIRECTORY}/containers/"**"/hooks/${hook_type}.sh"; do
+        CONTAINER_NAME="$(basename "$(realpath "$(dirname "${hook}")/..")")";
+        CONTAINER_ENV="$(basename "$(realpath "${OWN_DIRECTORY}/env/${CONTAINER_NAME}/current")")";
+        CONTAINER_VERSION="${CONTAINER_ENV%".env"}";
+
+        # shellcheck source=env/${CONTAINER_NAME}/current
+        source "${OWN_DIRECTORY}/env/${CONTAINER_NAME}/current";
+
+        export CONTAINER_NAME;
+        export CONTAINER_ENV;
+        export CONTAINER_VERSION;
+
         # shellcheck source=templates/hooks/${hook_type}.sh
         . "${hook}" >(_print_pipe);
     done
