@@ -1,6 +1,7 @@
 ################################################################################
 # ~/.bash_functions                                                            #
 ################################################################################
+
 function status {
     local pid=${!};
 
@@ -108,4 +109,36 @@ function icanhaz {
 
             return 1;
     esac
+}
+
+function println {
+    if [[ -z "${1}" ]]; then
+        printf "%bMissing argument 'filename'%b\n" "\e[1;31m" "\e[m";
+
+        return 1;
+    fi
+
+    if [[ -z "${2}" ]]; then
+        printf "%bMissing argument 'line'%b\n" "\e[1;31m" "\e[m";
+
+        return 1;
+    fi
+
+    sed "${2}q;d" "${1}";
+}
+
+function find_in_file {
+    if [[ -z "${1}" ]]; then
+        printf "%bMissing argument 'filename'%b\n" "\e[1;31m" "\e[m";
+
+        return 1;
+    fi
+
+    if [[ -z "${2}" ]]; then
+        printf "%bMissing argument 'text'%b\n" "\e[1;31m" "\e[m";
+
+        return 1;
+    fi
+
+    grep -hnr "${2}" "${1}";
 }
