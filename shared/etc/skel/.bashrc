@@ -92,15 +92,27 @@ function current_git_status() {
     if grep -qi "your branch is up to date with" <<< "$status"; then
         status_text="";
     elif grep -qi "your branch is ahead of" <<< "$status"; then
-        status_text="[AHEAD] ";
+        printf -v status_text "%b[%b%s%b]%b "               \
+                              "\033[0;41;1m" "\033[5;41;1m" \
+                              "AHEAD"                       \
+                              "\033[0;41;1m" "\033[0;1;33m" ;
     elif grep -qi "your branch is behind" <<< "$status"; then
         if grep -qi "and can be fast-forwarded" <<< "$status"; then
-            status_text="[BEHIND] ";
+            printf -v status_text "%b[%b%s%b]%b "               \
+                                  "\033[0;41;1m" "\033[5;41;1m" \
+                                  "BEHIND"                      \
+                                  "\033[0;41;1m" "\033[0;1;33m" ;
         else
-            status_text="[BEHIND NOT FF-ABLE] ";
+            printf -v status_text "%b[!!! %b%s%b !!!]%b "       \
+                                  "\033[0;41;1m" "\033[5;41;1m" \
+                                  "BEHIND NOT FF-ABLE"          \
+                                  "\033[0;41;1m" "\033[0;1;33m" ;
         fi
     elif grep -q "have diverged" <<< "$status"; then
-        status_text="[DIVERGED] ";
+        printf -v status_text "%b[!%b!%b! %b%s%b !%b!%b!]%b "                             \
+                              "\033[0;41;1m" "\033[5;41;1m" "\033[0;41;1m" "\033[5;41;1m" \
+                              "DIVERGED"                                                  \
+                              "\033[0;41;1m" "\033[5;41;1m" "\033[0;41;1m" "\033[0;1;33m" ;
     fi
 
     if grep -qi "nothing added to commit but untracked files present" <<< "$status"; then
@@ -207,7 +219,7 @@ if [[ "${color_prompt}" == "yes" ]]; then
         shell_string='\[\033[1;33;41m\][\u@\h$(is_chroot)$(is_environment)$(is_screen)$(real_directory_path)]';
     fi
 
-    PS1="\${?} · ${shell_string}\[\033[m\]\[\033[1;37m\]\$(current_git_branch)\[\033[m\] \\$ ";
+    PS1="\${?} · ${shell_string}\[\033[m\]\[\033[1m\]\$(current_git_branch)\[\033[1;33m\]\$(current_git_status)\[\033[m\] \\$ ";
     PS2=" · ";
 
     # enable color support of ls and also add handy aliases
