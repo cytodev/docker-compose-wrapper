@@ -145,7 +145,9 @@ if [[ -x /usr/bin/ssh-agent ]]; then
 fi
 
 ############################################################################ GPG
-export GPG_TTY=$(tty)
+if [[ -x /usr/bin/gpg ]]; then
+    export GPG_TTY=$(tty);
+fi
 
 ################################################################### PROMPT SETUP
 # uncomment for a colored prompt, if the terminal has the capability; turned off
