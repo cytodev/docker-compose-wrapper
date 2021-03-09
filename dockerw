@@ -156,7 +156,7 @@ function _print_pipe {
     done
 
     for message in "${messages[@]}"; do
-        _print ${PIPE_SEVERITY} "${message}";
+        _print "${PIPE_SEVERITY}" "${message}";
     done
 }
 
