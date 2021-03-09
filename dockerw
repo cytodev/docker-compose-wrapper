@@ -389,11 +389,13 @@ function _create {
         return ${?};
     fi
 
-    mkdir "${OWN_DIRECTORY}/containers/${container_name}/data";
-    touch "${OWN_DIRECTORY}/containers/${container_name}/data/.gitkeep";
+    mkdir -p "${OWN_DIRECTORY}/containers/${container_name}/data";
+    mkdir -p "${OWN_DIRECTORY}/containers/${container_name}/hooks";
 
-    cp -r "${OWN_DIRECTORY}/templates/data/*" "${OWN_DIRECTORY}/containers/${container_name}/data";
-    cp -r "${OWN_DIRECTORY}/templates/hooks" "${OWN_DIRECTORY}/containers/${container_name}/";
+    shopt -s dotglob;
+
+    cp -r "${OWN_DIRECTORY}/templates/data"/* "${OWN_DIRECTORY}/containers/${container_name}/data/";
+    cp -r "${OWN_DIRECTORY}/templates/hooks"/* "${OWN_DIRECTORY}/containers/${container_name}/hooks/";
 
     mkdir -p "${OWN_DIRECTORY}/env/${container_name}";
 
