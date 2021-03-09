@@ -633,9 +633,6 @@ function _hook {
         CONTAINER_ENV="$(basename "$(realpath "${OWN_DIRECTORY}/env/${CONTAINER_NAME}/current")")";
         CONTAINER_VERSION="${CONTAINER_ENV%".env"}";
 
-        # shellcheck source=env/${CONTAINER_NAME}/current
-        source "${OWN_DIRECTORY}/env/${CONTAINER_NAME}/current";
-
         export CONTAINER_NAME;
         export CONTAINER_ENV;
         export CONTAINER_VERSION;
