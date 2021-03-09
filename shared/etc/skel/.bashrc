@@ -149,7 +149,7 @@ PROMPT_COMMAND="history -a;$PROMPT_COMMAND";
 ############################################################################ SSH
 # Start the SSH agent on every shell session
 if [[ -x /usr/bin/ssh-agent ]]; then
-    export SSH_AUTH_SOCK=~/.ssh/ssh-agent.sock;
+    export SSH_AUTH_SOCK=/tmp/ssh/ssh-agent.sock;
 
     ssh-add -l &> /dev/null;
 
