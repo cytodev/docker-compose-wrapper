@@ -1,14 +1,14 @@
 container-${container_name}:
-  image: container:${container_name}\${${container_from_name^^}_VERSION}
-  container_name: \${INSTANCE_NAME}${container_name}\${${container_from_name^^}_VERSION}
+  image: \${INSTANCE_NAME:-container}:${container_name}\${${container_from_name^^}_VERSION}
+  container_name: \${INSTANCE_NAME:-container}-${container_name}\${${container_from_name^^}_VERSION}
   hostname: ${container_name}
   restart: unless-stopped
   working_dir: ${working_dir}
   network_mode: host
   build:
     args:
-      - ARG_USER_ID=\${USER_ID}
-      - ARG_GROUP_ID=\${GROUP_ID}
+      - ARG_USER_ID=\${USER_ID:-1000}
+      - ARG_GROUP_ID=\${GROUP_ID:-1000}
       - ARG_${container_from_name^^}_VERSION=\${${container_from_name^^}_VERSION:-latest}
     context: ./
     dockerfile: ./containers/${container_name}/Dockerfile
@@ -21,6 +21,5 @@ container-${container_name}:
     - cache:/home/development/.cache
     - config:/home/development/.config
     - ssh:/home/development/.ssh
-    - history_file:/home/development/.bash_history
     - logs:/var/log
     - shared:/shared

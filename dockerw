@@ -437,7 +437,7 @@ function _setup {
             read -e -r -p "Name: " choice </dev/tty;
         done
 
-        instance_name="${choice}-";
+        instance_name="${choice}";
 
         _print -v "INSTANCE_NAME=%s" "${choice}";
     fi
