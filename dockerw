@@ -546,6 +546,7 @@ function _setup {
     if [[ -n "${payload[*]}" ]]; then
         payload+=("################################################################################");
         payload+=("# Global config");
+        payload+=("DOCKERW_DIR=${OWN_DIRECTORY}");
         payload+=("INSTANCE_NAME=${instance_name}");
         payload+=("USER_ID=$(id -u "${USER}")");
         payload+=("GROUP_ID=$(id -g "${USER}")");
