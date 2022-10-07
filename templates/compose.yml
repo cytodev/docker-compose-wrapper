@@ -1,6 +1,6 @@
 container-${container_name}:
-  image: \${INSTANCE_NAME:-container}:${container_name}\${${container_from_name^^}_VERSION}
-  container_name: \${INSTANCE_NAME:-container}-${container_name}\${${container_from_name^^}_VERSION}
+  image: \${INSTANCE_NAME:-unnamed}:${container_name}\${${container_from_name^^}_VERSION}
+  container_name: \${INSTANCE_NAME:-unnamed}-${container_name}\${${container_from_name^^}_VERSION}
   hostname: ${container_name}
   restart: unless-stopped
   working_dir: ${working_dir}
