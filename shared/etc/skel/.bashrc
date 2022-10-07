@@ -22,36 +22,17 @@ shopt -s globstar
 
 ############################################################### HELPER FUNCTIONS
 
-function is_chroot {
-    if [[ -n ${chroot:+$chroot} ]]; then
-        printf "${chroot:+:$chroot}";
+function _ps1_real_host {
+    local hostname="$(hostname)";
+    local suffix=;
 
-        return 0;
-    fi
+    printf -v suffix "%s" "${hostname#*.}";
 
-    return 1;
-}
+    [[ "${suffix}" = "${hostname}" ]] && return 0;
 
-function is_environment {
-    if [[ -n ${env:+$env} ]]; then
-        printf "${env:+:$env}";
+    printf ".%s" "${suffix}";
 
-        return 0;
-    fi
-
-    return 1;
-}
-
-function is_screen {
-    [[ ! -x /usr/bin/screen ]] && return 127;
-
-    if [[ -n "${STY}" ]]; then
-        printf " %s" ${STY#*.};
-
-        return 0;
-    fi
-
-    return 1;
+    return 0;
 }
 
 function real_directory_path {
@@ -161,6 +142,19 @@ if [[ -x /usr/bin/gpg ]]; then
     export GPG_TTY=$(tty);
 fi
 
+####################################################################### COMPOSER
+export COMPOSER_CACHE_DIR="${HOME}/.cache/composer"
+export COMPOSER_HOME="${HOME}/.config/composer"
+export COMPOSER_MEMORY_LIMIT=-1;
+
+############################################################################ NVM
+if [[ -d "${HOME}/.nvm" ]]; then
+    export NVM_DIR="${HOME}/.nvm"
+
+    [[ -s "${NVM_DIR}/nvm.sh"          ]] && \. "${NVM_DIR}/nvm.sh"
+    [[ -s "${NVM_DIR}/bash_completion" ]] && \. "${NVM_DIR}/bash_completion"
+fi
+
 ################################################################### PROMPT SETUP
 # uncomment for a colored prompt, if the terminal has the capability; turned off
 # by default to not distract the user: the focus in a terminal window should be
@@ -199,28 +193,20 @@ if [[ "${color_prompt}" == "yes" ]]; then
         shell_array+=('\[\033[1;32m\]');
         shell_array+=('\h');
 
-        shell_array+=('\[\033[1;31m\]');
-        shell_array+=('$(is_chroot)');
-
-        shell_array+=('\[\033[1;35m\]');
-        shell_array+=('$(is_environment)');
-
-        shell_array+=('\[\033[1;33m\]');
-        shell_array+=('$(is_screen)');
-
         shell_array+=('\[\033[m\]');
-        shell_array+=('$(real_directory_path)');
+        shell_array+=('$(_ps1_real_host)');
 
         shell_array+=('\[\033[1;30m\]');
         shell_array+=(']');
+        shell_array+=('\[\033[m\]');
 
-        shell_string=$(IFS=; echo "${shell_array[*]}");
+        shell_string="$(IFS=; echo "${shell_array[*]}")";
     else
-        shell_string='\[\033[1;33;41m\][\u@\h$(is_chroot)$(is_environment)$(is_screen)$(real_directory_path)]';
+        shell_string='\[\033[1;33;41m\][\u@\h$(_ps1_real_host)]'
     fi
 
-    PS1="\${?} · ${shell_string}\[\033[m\]\[\033[1m\]\$(current_git_branch)\[\033[1;33m\]\$(current_git_status)\[\033[m\] \\$ ";
-    PS2=" · ";
+    PS1="${shell_string}\[\033[1m\]\$(current_git_branch)\[\033[1;33m\]\$(current_git_status)\[\033[m\]\n\$(real_directory_path) \\$ ";
+    PS2=" + ";
 
     # enable color support of ls and also add handy aliases
     if [[ -x /usr/bin/dircolors ]]; then
@@ -235,10 +221,11 @@ if [[ "${color_prompt}" == "yes" ]]; then
     # colored GCC warnings and errors
     export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01';
 
+    unset -v shell_array;
     unset -v shell_string;
 else
-    PS1='$? · [\u@\h$(is_chroot)$(is_environment)$(is_screen)$(real_directory_path)]$(current_git_branch)$(current_git_status) \$ ';
-    PS2=" · ";
+    PS1='[\u@\h$(_ps1_real_host)]$(current_git_branch)$(current_git_status)\n$(real_directory_path) \$';
+    PS2=" + ";
 fi
 
 unset -v color_prompt;
@@ -247,7 +234,7 @@ unset -v force_color_prompt;
 # If this is an xterm set the title to user@host:dir
 case "${TERM}" in
     xterm*|rxvt*)
-        PS1="\[\e]0;\u@\h:$(is_chroot)$(is_environment) \w\a\]${PS1}";
+        PS1="\[\e]0;\u@\h:\w\a\]${PS1}";
         ;;
     *)
         ;;
